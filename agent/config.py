@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     anthropic_model: str = "claude-sonnet-4-6"
     anthropic_vision_model: str = "claude-sonnet-4-6"
 
+    # --- Sumopod AI (OpenAI-compatible gateway — vision classifier) ---
+    # gpt-4o-mini: vision + tool-calling, ~$0.0004/call — cost-efficient default.
+    sumopod_api_key: str = ""
+    sumopod_base_url: str = "https://ai.sumopod.com/v1"
+    sumopod_vision_model: str = "gpt-4o-mini"
+
     # --- DOKU ---
     doku_client_id: str = ""
     doku_api_key: str = ""

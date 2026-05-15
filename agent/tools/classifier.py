@@ -1,10 +1,14 @@
-"""Classifier Agent tool — Claude vision multi-modal classification of infrastructure issues.
+"""Classifier Agent tool — multi-modal classification of infrastructure issues.
 
-This is the "eyes" of Rasain. Given a citizen's photo (and optional text/GPS),
-it returns a structured classification that downstream agents route on.
+The "eyes" of Rasain. Given a citizen's photo (+ optional text/GPS), returns a
+structured classification that downstream agents route on.
 
-Design: classification taxonomy is injected from data/seed/, not hardcoded in the
-prompt — so adding a category is a JSON edit, not a code change.
+Vision runs through the **Sumopod AI gateway** (OpenAI-compatible) using a Claude
+vision model. Falls back to a deterministic keyword classifier (DEMO_MODE) when
+no Sumopod key is configured — so the pipeline always runs.
+
+Design: the classification taxonomy is injected from data/seed/, not hardcoded
+in the prompt — adding a category is a JSON edit, not a code change.
 """
 from __future__ import annotations
 
@@ -13,7 +17,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from anthropic import Anthropic
+from openai import OpenAI
 
 from agent.config import get_settings
 
@@ -25,119 +29,104 @@ def _load_taxonomy() -> dict[str, Any]:
     return json.loads(_SEED_PATH.read_text(encoding="utf-8"))
 
 
-def _image_to_base64(image_path: str) -> tuple[str, str]:
-    """Read image file → (media_type, base64_data)."""
+def _image_to_data_uri(image_path: str) -> str:
+    """Read image file → data URI for OpenAI-compatible vision input."""
     path = Path(image_path)
-    suffix = path.suffix.lower()
     media_type = {
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".png": "image/png",
-        ".webp": "image/webp",
-    }.get(suffix, "image/jpeg")
+        ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+        ".png": "image/png", ".webp": "image/webp",
+    }.get(path.suffix.lower(), "image/jpeg")
     data = base64.standard_b64encode(path.read_bytes()).decode("utf-8")
-    return media_type, data
+    return f"data:{media_type};base64,{data}"
 
 
-# Tool schema yang dipakai Claude untuk structured output (zero parse error).
-CLASSIFICATION_TOOL = {
-    "name": "submit_classification",
-    "description": "Submit hasil klasifikasi masalah infrastruktur publik.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "category": {
-                "type": "string",
-                "description": "Kategori utama masalah (kunci dari taxonomy)",
-            },
-            "subcategory": {
-                "type": "string",
-                "description": "Subkategori spesifik",
-            },
-            "severity": {
-                "type": "string",
-                "enum": ["low", "medium", "high", "critical"],
-                "description": "Tingkat keparahan berdasarkan dampak yang TERLIHAT di foto + konteks",
-            },
-            "urgency": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 5,
-                "description": "1=informasi, 3=tindakan 7 hari, 5=darurat <24 jam",
-            },
-            "is_valid_report": {
-                "type": "boolean",
-                "description": "False jika foto bukan masalah infrastruktur (selfie, spam, dll)",
-            },
-            "confidence": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1,
-                "description": "Keyakinan klasifikasi 0-1",
-            },
-            "reasoning": {
-                "type": "string",
-                "description": "Penjelasan singkat: apa yang terlihat di foto, kenapa severity & urgency dipilih. Bahasa Indonesia.",
-            },
-            "suggested_instansi_type": {
-                "type": "string",
-                "description": "Tipe instansi yang berwenang (e.g. 'Dinas PUPR', 'DLH', 'PLN')",
-            },
+# JSON schema for the classifier's structured output (zero parse error).
+_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "category": {"type": "string", "description": "Kategori utama (kunci taxonomy)"},
+        "subcategory": {"type": "string", "description": "Subkategori spesifik"},
+        "severity": {
+            "type": "string", "enum": ["low", "medium", "high", "critical"],
+            "description": "Keparahan berdasarkan dampak TERLIHAT di foto + konteks",
         },
-        "required": [
-            "category", "severity", "urgency", "is_valid_report",
-            "confidence", "reasoning", "suggested_instansi_type",
-        ],
+        "urgency": {
+            "type": "integer", "minimum": 1, "maximum": 5,
+            "description": "1=informasi, 3=tindakan 7 hari, 5=darurat <24 jam",
+        },
+        "is_valid_report": {
+            "type": "boolean",
+            "description": "False jika foto bukan masalah infrastruktur publik",
+        },
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "reasoning": {
+            "type": "string",
+            "description": "Penjelasan: apa yang terlihat, kenapa severity & urgency "
+            "dipilih. Bahasa Indonesia, ringkas dan konkret.",
+        },
+        "suggested_instansi_type": {
+            "type": "string",
+            "description": "Tipe instansi berwenang (Dinas PUPR, DLH, PLN, dll)",
+        },
     },
+    "required": [
+        "category", "severity", "urgency", "is_valid_report",
+        "confidence", "reasoning", "suggested_instansi_type",
+    ],
 }
+
+def _build_tool(taxonomy: dict[str, Any]) -> dict[str, Any]:
+    """Build the classification tool with `category` constrained to taxonomy keys.
+
+    The enum forces the model to return an exact key the Geolocator can route on.
+    """
+    schema = json.loads(json.dumps(_SCHEMA))  # deep copy
+    schema["properties"]["category"]["enum"] = list(taxonomy["kategori_masalah"].keys())
+    return {
+        "type": "function",
+        "function": {
+            "name": "submit_classification",
+            "description": "Submit hasil klasifikasi masalah infrastruktur publik.",
+            "parameters": schema,
+        },
+    }
 
 
 def _build_system_prompt(taxonomy: dict[str, Any]) -> str:
-    """Build the classifier system prompt with injected taxonomy."""
-    categories = taxonomy["kategori_masalah"]
+    """Build the classifier system prompt with the injected taxonomy."""
     cat_lines = []
-    for key, val in categories.items():
+    for key, val in taxonomy["kategori_masalah"].items():
         subs = ", ".join(val.get("subkategori", []))
         instansi = val.get("instansi_kabkota", val.get("instansi_pusat", "-"))
-        cat_lines.append(f"- {key} ({val['nama']}): subkategori=[{subs}] → {instansi}")
+        cat_lines.append(f"- {key} ({val['nama']}): subkategori=[{subs}] -> {instansi}")
     taxonomy_block = "\n".join(cat_lines)
 
-    return f"""Kamu adalah Classifier Agent untuk Rasain — sistem pelaporan masalah \
-infrastruktur publik Indonesia.
-
-Tugasmu: lihat foto yang dikirim warga, klasifikasikan masalahnya secara akurat.
+    return f"""Kamu Classifier Agent untuk Rasain — sistem pelaporan masalah \
+infrastruktur publik Indonesia. Lihat foto warga, klasifikasikan akurat.
 
 TAXONOMY KATEGORI (pilih category dari kunci ini):
 {taxonomy_block}
 
-PANDUAN PENILAIAN SEVERITY (gunakan KONTEKS VISUAL, bukan cuma jenis objek):
-- low: masalah kecil, tidak mengganggu, tidak ada risiko keselamatan
+SEVERITY (pakai KONTEKS VISUAL, bukan cuma jenis objek):
+- low: kecil, tidak mengganggu, tanpa risiko keselamatan
 - medium: mengganggu aktivitas, perlu perbaikan terjadwal
-- high: kerusakan signifikan, ada risiko keselamatan, mengganggu banyak orang
+- high: kerusakan signifikan, ada risiko keselamatan, ganggu banyak orang
 - critical: bahaya fatal/segera, akses terputus, butuh respon darurat
 
-PANDUAN URGENCY (1-5):
-- 1: informasi/saran, 2: tindakan 30 hari, 3: tindakan 7 hari,
-- 4: tindakan 48 jam, 5: darurat <24 jam
+URGENCY 1-5: 1=info, 2=30 hari, 3=7 hari, 4=48 jam, 5=darurat <24 jam
 
-PRINSIP PENTING:
-1. Severity ditentukan KONTEKS, bukan jenis objek. Lubang jalan di gang sepi = \
-medium; lubang sama persis di tikungan tajam jalan ramai = high (risiko kecelakaan).
-2. Jika foto BUKAN masalah infrastruktur publik (selfie, makanan, spam, \
-foto dalam ruangan pribadi) → set is_valid_report=false.
-3. confidence rendah (<0.6) jika foto blur/gelap/ambigu — downstream akan minta foto ulang.
-4. reasoning HARUS sebutkan: (a) apa yang terlihat, (b) kenapa severity dipilih, \
-(c) kenapa urgency dipilih. Bahasa Indonesia, ringkas tapi konkret.
+PRINSIP:
+1. Severity ditentukan KONTEKS. Lubang di gang sepi = medium; lubang sama di \
+tikungan ramai = high (risiko kecelakaan).
+2. Foto BUKAN masalah infrastruktur publik -> is_valid_report=false.
+3. confidence <0.6 jika foto blur/gelap/ambigu.
+4. reasoning sebut: (a) apa yang terlihat, (b) alasan severity, (c) alasan urgency.
 
-Selalu panggil tool submit_classification dengan hasil analisismu."""
+Selalu panggil tool submit_classification."""
 
 
-def _mock_classification(description: str | None, kota: str | None) -> dict[str, Any]:
-    """Deterministic fallback classification when no Anthropic key is available.
-
-    Keyword-matches the description so DEMO_MODE / validator runs still exercise
-    the full pipeline. Real runs (with a key) use Claude vision instead.
-    """
+def _mock_classification(description: str | None) -> dict[str, Any]:
+    """DEMO_MODE fallback — keyword classifier when no Sumopod key is set."""
     text = (description or "").lower()
     rules = [
         (("sampah", "tps", "kotor"), "sampah_kebersihan", "sampah_menumpuk", "DLH"),
@@ -151,17 +140,17 @@ def _mock_classification(description: str | None, kota: str | None) -> dict[str,
         if any(k in text for k in keywords):
             category, subcategory, instansi = cat, sub, ins
             break
+    severe = "parah" in text or "bahaya" in text
     return {
-        "category": category,
-        "subcategory": subcategory,
-        "severity": "high" if "parah" in text or "bahaya" in text else "medium",
-        "urgency": 4 if "parah" in text or "bahaya" in text else 3,
-        "is_valid_report": True,
-        "confidence": 0.82,
-        "reasoning": f"[DEMO_MODE] Klasifikasi berbasis kata kunci dari deskripsi "
-        f"'{description}'. Terdeteksi kategori {category}. Jalankan dengan "
-        f"ANTHROPIC_API_KEY untuk analisis Claude vision sungguhan.",
+        "category": category, "subcategory": subcategory,
+        "severity": "high" if severe else "medium",
+        "urgency": 4 if severe else 3,
+        "is_valid_report": True, "confidence": 0.82,
+        "reasoning": f"Klasifikasi berbasis kata kunci dari deskripsi '{description}'. "
+        f"Terdeteksi kategori {category}. (DEMO_MODE — set SUMOPOD_API_KEY untuk "
+        f"analisis vision penuh.)",
         "suggested_instansi_type": instansi,
+        "_demo_mode": True,
     }
 
 
@@ -172,54 +161,44 @@ def classify_infrastructure_issue(
 ) -> dict[str, Any]:
     """Classify an infrastructure problem photo.
 
-    Uses Claude vision when ANTHROPIC_API_KEY is set; otherwise falls back to a
-    deterministic keyword classifier so the pipeline runs in DEMO_MODE.
+    Uses Sumopod AI (Claude vision) when SUMOPOD_API_KEY is set; otherwise falls
+    back to a deterministic keyword classifier (DEMO_MODE).
 
-    Args:
-        image_path: Path ke file foto masalah.
-        description: Teks deskripsi opsional dari warga.
-        kota: Nama kota opsional (membantu konteks).
-
-    Returns:
-        Dict hasil klasifikasi (lihat CLASSIFICATION_TOOL schema).
+    Returns a dict matching the classification schema.
     """
     settings = get_settings()
-    if not settings.anthropic_api_key:
-        return _mock_classification(description, kota)
+    if not settings.sumopod_api_key:
+        return _mock_classification(description)
 
     taxonomy = _load_taxonomy()
-    client = Anthropic(api_key=settings.anthropic_api_key)
+    client = OpenAI(api_key=settings.sumopod_api_key, base_url=settings.sumopod_base_url)
 
-    media_type, image_data = _image_to_base64(image_path)
-
-    user_content: list[dict[str, Any]] = [
-        {
-            "type": "image",
-            "source": {"type": "base64", "media_type": media_type, "data": image_data},
-        }
-    ]
-    context_parts = []
+    context = []
     if description:
-        context_parts.append(f"Deskripsi warga: {description}")
+        context.append(f"Deskripsi warga: {description}")
     if kota:
-        context_parts.append(f"Kota: {kota}")
-    user_content.append({
-        "type": "text",
-        "text": "\n".join(context_parts) if context_parts
-        else "Klasifikasikan masalah infrastruktur di foto ini.",
-    })
+        context.append(f"Kota: {kota}")
+    context_text = "\n".join(context) or "Klasifikasikan masalah infrastruktur di foto ini."
 
-    response = client.messages.create(
-        model=settings.anthropic_vision_model,
+    user_content: list[dict[str, Any]] = [{"type": "text", "text": context_text}]
+    # Attach the photo unless this is a text-only path.
+    if image_path and Path(image_path).exists():
+        user_content.append(
+            {"type": "image_url", "image_url": {"url": _image_to_data_uri(image_path)}}
+        )
+
+    response = client.chat.completions.create(
+        model=settings.sumopod_vision_model,
         max_tokens=1024,
-        system=_build_system_prompt(taxonomy),
-        tools=[CLASSIFICATION_TOOL],
-        tool_choice={"type": "tool", "name": "submit_classification"},
-        messages=[{"role": "user", "content": user_content}],
+        messages=[
+            {"role": "system", "content": _build_system_prompt(taxonomy)},
+            {"role": "user", "content": user_content},
+        ],
+        tools=[_build_tool(taxonomy)],
+        tool_choice={"type": "function", "function": {"name": "submit_classification"}},
     )
 
-    for block in response.content:
-        if block.type == "tool_use" and block.name == "submit_classification":
-            return dict(block.input)
-
-    raise RuntimeError("Classifier tidak mengembalikan structured output")
+    tool_calls = response.choices[0].message.tool_calls
+    if not tool_calls:
+        raise RuntimeError("Classifier tidak mengembalikan structured output")
+    return json.loads(tool_calls[0].function.arguments)
