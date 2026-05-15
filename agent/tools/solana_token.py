@@ -96,9 +96,14 @@ async def mint_rsn(citizen_wallet_address: str, amount: int) -> dict[str, str]:
     settings = get_settings()
     authority = load_mint_authority()
     owner = Pubkey.from_string(citizen_wallet_address)
+    mint = Pubkey.from_string(settings.rsn_mint_address)
     async with AsyncClient(settings.solana_rpc_url) as client:
         token = await _get_token(client)
-        ata = await token.create_associated_token_account(owner, skip_confirmation=False)
+        # Idempotent: only create the ATA if it does not already exist.
+        ata = get_associated_token_address(owner, mint)
+        info = await client.get_account_info(ata)
+        if info.value is None:
+            await token.create_associated_token_account(owner, skip_confirmation=False)
         resp = await token.mint_to(
             dest=ata,
             mint_authority=authority,

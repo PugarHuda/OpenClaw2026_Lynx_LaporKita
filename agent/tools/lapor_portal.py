@@ -84,13 +84,49 @@ def submit_to_lapor(
     return ticket
 
 
+# Demo pacing: how long (seconds) before a ticket auto-progresses. In V2 this
+# is replaced by real Lapor.go.id status webhooks.
+_AUTO_IN_PROGRESS_SECONDS = 12
+_AUTO_RESOLVED_SECONDS = 28
+
+
+def _maybe_auto_advance(ticket: dict[str, Any]) -> dict[str, Any]:
+    """Simulate agency response: progress a ticket based on elapsed time.
+
+    Lets the autonomous tracker observe a realistic status lifecycle without a
+    manual trigger — the demo just waits and watches.
+    """
+    if ticket["status"] == "resolved":
+        return ticket
+    elapsed = (datetime.utcnow() - datetime.fromisoformat(ticket["submitted_at"])).total_seconds()
+    target = ticket["status"]
+    if elapsed >= _AUTO_RESOLVED_SECONDS:
+        target = "resolved"
+    elif elapsed >= _AUTO_IN_PROGRESS_SECONDS and ticket["status"] in ("submitted", "forwarded", "verified_by_admin"):
+        target = "in_progress"
+    if target != ticket["status"]:
+        return advance_ticket_status(ticket["ticket_id"], target)
+    return ticket
+
+
 def get_lapor_status(ticket_id: str) -> dict[str, Any]:
-    """Poll the current status of a Lapor.go.id ticket."""
+    """Poll the current status of a Lapor.go.id ticket (with time-based progress)."""
     data = _load()
     ticket = data["tickets"].get(ticket_id)
     if ticket is None:
         return {"error": f"Ticket {ticket_id} tidak ditemukan"}
-    return ticket
+    return _maybe_auto_advance(ticket)
+
+
+def resolve_all_open_tickets() -> int:
+    """Force every open ticket to 'resolved'. Demo control for snappy walkthroughs."""
+    data = _load()
+    count = 0
+    for ticket_id, ticket in data["tickets"].items():
+        if ticket["status"] != "resolved":
+            advance_ticket_status(ticket_id, "resolved")
+            count += 1
+    return count
 
 
 def escalate_ticket(ticket_id: str, reason: str) -> dict[str, Any]:

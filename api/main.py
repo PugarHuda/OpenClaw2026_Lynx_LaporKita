@@ -110,6 +110,16 @@ async def trigger_tracker() -> dict:
     return await run_tracker_cycle()
 
 
+@app.post("/portal/resolve-all")
+async def portal_resolve_all() -> dict:
+    """Force all open Lapor.go.id tickets to resolved (demo control)."""
+    from agent.tools.lapor_portal import resolve_all_open_tickets
+
+    count = resolve_all_open_tickets()
+    actions = await run_tracker_cycle()
+    return {"resolved_tickets": count, "tracker": actions}
+
+
 @app.get("/reports")
 async def list_reports() -> list[dict]:
     """All reports, newest first — feeds the admin dashboard."""

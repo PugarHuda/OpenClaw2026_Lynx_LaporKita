@@ -65,5 +65,6 @@ export const api = {
   citizens: () => get<Citizen[]>("/citizens"),
   submitReport: (body: Record<string, unknown>) => post<Record<string, unknown>>("/report", body),
   runTracker: () => post<Record<string, number>>("/tracker/run", {}),
+  resolveAll: () => post<Record<string, unknown>>("/portal/resolve-all", {}),
   redeem: (body: Record<string, unknown>) => post<Record<string, unknown>>("/redeem", body),
 };

@@ -20,6 +20,10 @@ import asyncio
 from datetime import datetime
 from uuid import UUID
 
+# Serializes tracker cycles: the scheduled job and manual triggers must not
+# process the same report concurrently (would double-mint rewards).
+_tracker_lock = asyncio.Lock()
+
 from agent.config import get_settings
 from agent.models import AgentLogEntry, Report, ReportStatus, Severity
 from agent.store import get_store
@@ -191,8 +195,15 @@ async def run_tracker_cycle() -> dict:
     This runs on a scheduler with NO human trigger — the core of Rasain's
     autonomy. Returns a summary of actions taken this cycle.
     """
+    if _tracker_lock.locked():
+        return {"polled": 0, "escalated": 0, "verified": 0, "rewards_minted": 0,
+                "skipped": "cycle already running"}
+    async with _tracker_lock:
+        return await _tracker_cycle_body()
+
+
+async def _tracker_cycle_body() -> dict:
     store = get_store()
-    settings = get_settings()
     actions = {"polled": 0, "escalated": 0, "verified": 0, "rewards_minted": 0}
 
     open_reports = [

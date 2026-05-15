@@ -108,6 +108,19 @@ export default function Dashboard() {
     }
   };
 
+  const resolveAll = async () => {
+    setBusy("resolve");
+    try {
+      await api.resolveAll();
+      flash("Instansi menyelesaikan laporan — agent memverifikasi & mint reward");
+      await refresh();
+    } catch {
+      flash("Gagal mensimulasikan respon instansi");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const redeem = async (citizen: Citizen) => {
     setBusy(`redeem-${citizen.id}`);
     try {
@@ -165,6 +178,13 @@ export default function Dashboard() {
             className="rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-semibold transition hover:border-zinc-500 disabled:opacity-50"
           >
             {busy === "tracker" ? "Menjalankan…" : "▶ Jalankan Tracker Cycle"}
+          </button>
+          <button
+            onClick={resolveAll}
+            disabled={busy !== null}
+            className="rounded-lg border border-emerald-700/60 bg-emerald-900/20 px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:border-emerald-500 disabled:opacity-50"
+          >
+            {busy === "resolve" ? "Memproses…" : "✓ Simulasi Respon Instansi"}
           </button>
         </section>
 
