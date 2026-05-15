@@ -34,12 +34,17 @@ export default function Landing() {
           <span className="text-lg font-bold tracking-tight">
             Rasain<span className="text-amber-400">.</span>
           </span>
-          <Link
-            href="/dashboard"
-            className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
-          >
-            Buka Dashboard Agent
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard" className="text-sm text-zinc-400 transition hover:text-amber-400">
+              Dashboard
+            </Link>
+            <Link
+              href="/lapor"
+              className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
+            >
+              Lapor Masalah
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -57,19 +62,19 @@ export default function Landing() {
           Indonesia melaporkan masalah infrastruktur publik — dengan reward yang
           bisa dicairkan, transparan di blockchain.
         </p>
-        <div className="mt-8 flex justify-center gap-3">
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
-            href="/dashboard"
+            href="/lapor"
             className="rounded-lg bg-amber-500 px-6 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
           >
-            Lihat Agent Bekerja →
+            Lapor Masalah Sekarang →
           </Link>
-          <a
-            href="#cara-kerja"
+          <Link
+            href="/dashboard"
             className="rounded-lg border border-zinc-700 px-6 py-3 text-sm font-semibold transition hover:border-zinc-500"
           >
-            Cara Kerja
-          </a>
+            Lihat Agent Bekerja
+          </Link>
         </div>
       </section>
 

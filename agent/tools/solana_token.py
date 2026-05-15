@@ -68,9 +68,8 @@ async def _rpc_healthy() -> bool:
         return bool(_rpc_health["healthy"])
     healthy = False
     try:
-        async with AsyncClient(get_settings().solana_rpc_url, timeout=5) as client:
-            resp = await client.get_health()
-            healthy = resp.value == "ok" if hasattr(resp, "value") else True
+        async with AsyncClient(get_settings().solana_rpc_url, timeout=8) as client:
+            healthy = await client.is_connected()
     except Exception:
         healthy = False
     _rpc_health.update(checked_at=now, healthy=healthy)

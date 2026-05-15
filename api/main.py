@@ -7,10 +7,11 @@ autonomous tracker loop on an interval — no human trigger.
 from __future__ import annotations
 
 import os
+import tempfile
 from contextlib import asynccontextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -95,6 +96,40 @@ async def submit_report(req: ReportRequest) -> dict:
         bank_account=req.bank_account,
         bank_name=req.bank_name,
         channel=req.channel,
+    )
+    return await process_report(intake_payload)
+
+
+@app.post("/report/upload")
+async def submit_report_upload(
+    photo: UploadFile = File(...),
+    wa_number: str = Form(...),
+    citizen_name: str = Form(...),
+    description: str = Form(...),
+    kota: str = Form(...),
+    bank_account: str = Form(""),
+    bank_name: str = Form(""),
+) -> dict:
+    """Submit a REAL citizen report with an uploaded photo.
+
+    The photo is saved to a temp file and analysed by the vision Classifier —
+    a genuine end-to-end flow: real person, real photo, real AI classification.
+    """
+    suffix = os.path.splitext(photo.filename or "photo.jpg")[1] or ".jpg"
+    tmp_dir = "/tmp" if os.getenv("VERCEL") else None
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir=tmp_dir) as tmp:
+        tmp.write(await photo.read())
+        image_path = tmp.name
+
+    intake_payload = intake_report(
+        wa_number=wa_number,
+        citizen_name=citizen_name,
+        image_path=image_path,
+        description=description,
+        kota=kota,
+        bank_account=bank_account or None,
+        bank_name=bank_name or None,
+        channel="web-upload",
     )
     return await process_report(intake_payload)
 

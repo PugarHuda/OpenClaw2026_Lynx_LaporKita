@@ -64,6 +64,11 @@ export const api = {
   reports: () => get<Report[]>("/reports"),
   citizens: () => get<Citizen[]>("/citizens"),
   submitReport: (body: Record<string, unknown>) => post<Record<string, unknown>>("/report", body),
+  submitReportUpload: async (formData: FormData): Promise<Record<string, unknown>> => {
+    const res = await fetch(`${API_URL}/report/upload`, { method: "POST", body: formData });
+    if (!res.ok) throw new Error(`upload failed: ${res.status}`);
+    return res.json();
+  },
   runTracker: () => post<Record<string, number>>("/tracker/run", {}),
   resolveAll: () => post<Record<string, unknown>>("/portal/resolve-all", {}),
   redeem: (body: Record<string, unknown>) => post<Record<string, unknown>>("/redeem", body),
