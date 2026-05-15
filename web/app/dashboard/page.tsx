@@ -32,27 +32,9 @@ const STATUS_STYLES: Record<string, string> = {
   pending: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
 };
 
-const DEMO_SCENARIOS = [
-  {
-    wa_number: "6281200000001", citizen_name: "Budi Santoso", kota: "Bekasi",
-    image_path: "data/images/jalan.jpg", bank_account: "1234567801", bank_name: "BCA",
-    description: "Jalan berlubang parah di tikungan ramai, bahaya buat pemotor",
-  },
-  {
-    wa_number: "6281200000002", citizen_name: "Siti Aminah", kota: "Surabaya",
-    image_path: "data/images/sampah.jpg", bank_account: "1234567802", bank_name: "Mandiri",
-    description: "Sampah menumpuk di TPS sudah seminggu, bau menyengat sekali",
-  },
-  {
-    wa_number: "6281200000003", citizen_name: "Joko Prasetyo", kota: "Jakarta",
-    image_path: "data/images/lampu.jpg", bank_account: "1234567803", bank_name: "BRI",
-    description: "Lampu jalan PJU mati total sepanjang gang, gelap dan rawan",
-  },
-];
-
 const STEPS = [
-  { n: 1, label: "Kirim laporan demo", desc: "Warga melapor — agent klasifikasi, rute, submit" },
-  { n: 2, label: "Simulasi respon instansi", desc: "Instansi menyelesaikan — agent verifikasi & beri reward" },
+  { n: 1, label: "Warga buat laporan", desc: "Lewat web form /lapor atau bot Telegram — foto + deskripsi nyata" },
+  { n: 2, label: "Instansi merespon", desc: "Balas email laporan — agent verifikasi & beri reward" },
   { n: 3, label: "Redeem Civic Credit", desc: "Warga tukar RSN — burn on-chain + QRIS Doku" },
 ];
 
@@ -103,20 +85,6 @@ export default function Dashboard() {
   const flash = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 4000);
-  };
-
-  const submitDemoReport = async () => {
-    const scenario = DEMO_SCENARIOS[reports.length % DEMO_SCENARIOS.length];
-    setBusy("report");
-    try {
-      const res = await api.submitReport({ ...scenario, channel: "dashboard" });
-      flash(`Laporan diproses: ${String(res.status)}`);
-      await refresh();
-    } catch {
-      flash("Gagal — pastikan backend berjalan");
-    } finally {
-      setBusy(null);
-    }
   };
 
   const resolveAll = async () => {
@@ -207,14 +175,16 @@ export default function Dashboard() {
         </section>
 
         {/* Actions */}
-        <section className="mt-6 flex flex-wrap gap-3">
-          <button
-            onClick={submitDemoReport}
-            disabled={busy !== null}
-            className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-50"
+        <section className="mt-6 flex flex-wrap items-center gap-3">
+          <Link
+            href="/lapor"
+            className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
           >
-            {busy === "report" ? "Memproses…" : "1 · Kirim Laporan (Demo)"}
-          </button>
+            1 · Buat Laporan (Web Form)
+          </Link>
+          <span className="text-sm text-zinc-500">
+            atau lapor via Telegram <span className="text-sky-400">@rasainAgent_bot</span>
+          </span>
           <button
             onClick={resolveAll}
             disabled={busy !== null}
