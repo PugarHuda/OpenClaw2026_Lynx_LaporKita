@@ -8,10 +8,21 @@ report arrived via WhatsApp or a web form.
 """
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 from agent.models import Citizen
 from agent.store import get_store
+
+
+def _anonymous_handle(seed: str) -> str:
+    """Derive a stable pseudonymous handle from a seed (wa number / chat id).
+
+    Citizens are anonymous — identified by a pseudonym + their Solana wallet,
+    never their real name. This protects reporters (whistleblower safety).
+    """
+    short = hashlib.sha1(seed.encode()).hexdigest()[:4].upper()
+    return f"Warga-{short}"
 
 
 def intake_report(
@@ -35,9 +46,11 @@ def intake_report(
     store = get_store()
     citizen = store.get_citizen_by_wa(wa_number)
     if citizen is None:
+        # Reports are anonymous: the real name is discarded, the citizen is
+        # known only by a pseudonymous handle + (later) their Solana wallet.
         citizen = Citizen(
             wa_number=wa_number,
-            name=citizen_name,
+            name=_anonymous_handle(wa_number),
             bank_account=bank_account,
             bank_name=bank_name,
             telegram_chat_id=telegram_chat_id,

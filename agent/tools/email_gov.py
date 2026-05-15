@@ -66,7 +66,7 @@ Sistem Rasain meneruskan laporan masalah infrastruktur publik dari warga:
   Kategori      : {category}
   Tingkat       : {severity} (urgensi {urgency}/5)
   Lokasi        : {kota}
-  Pelapor       : {citizen_name}
+  Pelapor       : {citizen_name} (laporan anonim — identitas pelapor dilindungi)
 
 Deskripsi:
 {description}
