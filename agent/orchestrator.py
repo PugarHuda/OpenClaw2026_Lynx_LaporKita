@@ -198,6 +198,7 @@ async def process_report(intake_payload: dict) -> dict:
             report.severity.value, report.urgency, report.kota,
             report.description, intake_payload["citizen_name"],
             f"pengaduan@{report.category.split('_')[0]}.go.id",
+            report.photo_url,
         )
         if email_result.get("sent"):
             _log(
@@ -255,33 +256,32 @@ async def _tracker_cycle_body() -> dict:
     for report in open_reports:
         actions["polled"] += 1
 
-        # --- Determine resolution: real email reply, or mock portal status ---
+        # --- Determine resolution from EITHER channel ---
+        # Real email reply from the agency, OR mock-portal resolution (demo
+        # trigger). Whichever fires first verifies the report.
+        resolved = False
+        verify_source = ""
         if use_email:
             reply = await asyncio.to_thread(check_reply, report.lapor_ticket_id)
-            resolved = reply.get("replied", False)
-            ticket = {"status": "resolved" if resolved else "in_progress"}
-            if resolved:
-                _log(
-                    "verifier", "email_reply_received",
-                    f"Balasan email diterima dari {reply.get('from', 'instansi')} "
-                    f"untuk tiket {report.lapor_ticket_id} — laporan terverifikasi.",
-                    report_id=report.id, citizen_id=report.citizen_id,
-                )
-        else:
-            ticket = get_lapor_status(report.lapor_ticket_id)
-            if "error" in ticket:
-                continue
+            if reply.get("replied"):
+                resolved = True
+                verify_source = f"balasan email dari {reply.get('from', 'instansi')}"
+
+        ticket = get_lapor_status(report.lapor_ticket_id)
+        if not resolved and isinstance(ticket, dict) and ticket.get("status") == "resolved":
+            resolved = True
+            verify_source = f"portal Lapor.go.id ({report.instansi_target})"
 
         # --- Resolved → verify + reward ---
-        if ticket["status"] == "resolved":
+        if resolved:
             report.status = ReportStatus.VERIFIED
             report.resolved_at = datetime.utcnow()
             report.verified_at = datetime.utcnow()
             store.upsert_report(report)
             _log(
                 "verifier", "verify_resolution",
-                f"Tiket {report.lapor_ticket_id} dinyatakan resolved oleh "
-                f"{report.instansi_target}. Laporan terverifikasi.",
+                f"Tiket {report.lapor_ticket_id} terverifikasi via {verify_source}. "
+                f"Laporan dinyatakan selesai.",
                 report_id=report.id, citizen_id=report.citizen_id,
             )
             # Persist this verified impact to Mem9 — recalled on future reports.
@@ -306,14 +306,14 @@ async def _tracker_cycle_body() -> dict:
             continue
 
         # --- In progress → just track ---
-        if ticket["status"] in ("in_progress", "forwarded", "verified_by_admin"):
+        if ticket.get("status") in ("in_progress", "forwarded", "verified_by_admin"):
             if report.status != ReportStatus.IN_PROGRESS:
                 report.status = ReportStatus.IN_PROGRESS
                 store.upsert_report(report)
 
-        # --- Stuck past SLA → escalate (portal mode only; email mode skips) ---
+        # --- Stuck past SLA → escalate ---
         sla = 7  # default; geolocator carries per-agency SLA in V2
-        if not use_email and is_ticket_stuck(ticket, sla):
+        if "submitted_at" in ticket and is_ticket_stuck(ticket, sla):
             escalate_ticket(
                 report.lapor_ticket_id,
                 f"Tidak ada penyelesaian dalam {sla} hari (SLA terlewat).",

@@ -39,11 +39,12 @@ def send_report_email(
     description: str,
     citizen_name: str,
     agency_email: str,
+    image_path: str | None = None,
 ) -> dict[str, Any]:
     """Email a citizen report to a government agency. Returns send status.
 
     The ticket_id is embedded in the subject so a reply can be matched back to
-    the report during verification.
+    the report during verification. The citizen's photo is attached when given.
     """
     settings = get_settings()
     if not email_configured():
@@ -77,6 +78,22 @@ Hormat kami,
 Rasain — Autonomous Civic Reporting Agent
 """
     )
+
+    # Attach the citizen's photo as evidence, if available.
+    if image_path:
+        try:
+            from pathlib import Path
+
+            p = Path(image_path)
+            if p.exists():
+                subtype = p.suffix.lstrip(".").lower() or "jpeg"
+                msg.add_attachment(
+                    p.read_bytes(), maintype="image",
+                    subtype="jpeg" if subtype == "jpg" else subtype,
+                    filename=f"bukti-{ticket_id}{p.suffix}",
+                )
+        except Exception:
+            pass  # attachment is best-effort; the report email still sends
 
     try:
         with smtplib.SMTP(_SMTP_HOST, _SMTP_PORT, timeout=20) as server:
