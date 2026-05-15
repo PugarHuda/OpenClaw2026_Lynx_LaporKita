@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     fonnte_token: str = ""
     telegram_bot_token: str = ""
 
+    # --- Government email channel (Submitter sends reports, Verifier reads replies) ---
+    gov_email_address: str = ""        # agent's Gmail (sends + receives)
+    gov_email_app_password: str = ""   # Gmail App Password (16 chars)
+    gov_email_demo_recipient: str = "" # demo target playing the agency inbox
+
     # --- App ---
     app_port: int = 8000
     app_host: str = "0.0.0.0"

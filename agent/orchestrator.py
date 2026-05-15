@@ -28,6 +28,7 @@ from agent.config import get_settings
 from agent.models import AgentLogEntry, Report, ReportStatus, Severity
 from agent.store import get_store
 from agent.tools.classifier import classify_infrastructure_issue
+from agent.tools.email_gov import check_reply, email_configured, send_report_email
 from agent.tools.geolocator import route_to_instansi
 from agent.tools.lapor_portal import (
     escalate_ticket,
@@ -184,11 +185,35 @@ async def process_report(intake_payload: dict) -> dict:
     store.upsert_report(report)
     _log(
         "submitter", "submit_lapor",
-        f"Laporan dikirim ke Lapor.go.id, tiket {ticket['ticket_id']}, "
-        f"status awal '{ticket['status']}'.",
+        f"Laporan tercatat di Lapor.go.id, tiket {ticket['ticket_id']}.",
         tool_calls=[{"tool": "submit_to_lapor", "result": {"ticket_id": ticket["ticket_id"]}}],
         report_id=report.id, citizen_id=citizen_id,
     )
+
+    # --- Step 4: Email the report to the responsible agency (real channel) ---
+    if email_configured():
+        email_result = await asyncio.to_thread(
+            send_report_email,
+            ticket["ticket_id"], report.instansi_target, report.category,
+            report.severity.value, report.urgency, report.kota,
+            report.description, intake_payload["citizen_name"],
+            f"pengaduan@{report.category.split('_')[0]}.go.id",
+        )
+        if email_result.get("sent"):
+            _log(
+                "submitter", "send_email",
+                f"Email laporan dikirim ke {email_result['recipient']}. Instansi "
+                f"diminta membalas — balasan akan memverifikasi laporan otomatis.",
+                tool_calls=[{"tool": "send_report_email", "result": email_result}],
+                report_id=report.id, citizen_id=citizen_id,
+            )
+        else:
+            _log(
+                "submitter", "send_email_failed",
+                f"Email gagal terkirim ({email_result.get('reason', 'unknown')}) — "
+                f"laporan tetap dilacak via portal.",
+                report_id=report.id, citizen_id=citizen_id,
+            )
 
     return {
         "status": "submitted",
@@ -225,11 +250,27 @@ async def _tracker_cycle_body() -> dict:
         and r.lapor_ticket_id
     ]
 
+    use_email = email_configured()
+
     for report in open_reports:
         actions["polled"] += 1
-        ticket = get_lapor_status(report.lapor_ticket_id)
-        if "error" in ticket:
-            continue
+
+        # --- Determine resolution: real email reply, or mock portal status ---
+        if use_email:
+            reply = await asyncio.to_thread(check_reply, report.lapor_ticket_id)
+            resolved = reply.get("replied", False)
+            ticket = {"status": "resolved" if resolved else "in_progress"}
+            if resolved:
+                _log(
+                    "verifier", "email_reply_received",
+                    f"Balasan email diterima dari {reply.get('from', 'instansi')} "
+                    f"untuk tiket {report.lapor_ticket_id} — laporan terverifikasi.",
+                    report_id=report.id, citizen_id=report.citizen_id,
+                )
+        else:
+            ticket = get_lapor_status(report.lapor_ticket_id)
+            if "error" in ticket:
+                continue
 
         # --- Resolved → verify + reward ---
         if ticket["status"] == "resolved":
@@ -270,9 +311,9 @@ async def _tracker_cycle_body() -> dict:
                 report.status = ReportStatus.IN_PROGRESS
                 store.upsert_report(report)
 
-        # --- Stuck past SLA → escalate ---
+        # --- Stuck past SLA → escalate (portal mode only; email mode skips) ---
         sla = 7  # default; geolocator carries per-agency SLA in V2
-        if is_ticket_stuck(ticket, sla):
+        if not use_email and is_ticket_stuck(ticket, sla):
             escalate_ticket(
                 report.lapor_ticket_id,
                 f"Tidak ada penyelesaian dalam {sla} hari (SLA terlewat).",
