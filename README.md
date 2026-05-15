@@ -1,109 +1,174 @@
 # Rasain
 
-> **AI Civic Reporting Agent for Indonesia with Web3 Reward Layer**
+> **Autonomous multi-agent system for civic infrastructure reporting in Indonesia.**
+> *Laporkan masalah, rasain perubahannya.*
 
-Rasain adalah AI agent yang membantu 280 juta warga Indonesia melapor masalah infrastruktur publik (jalan rusak, lampu mati, sampah, banjir, dll) ke Lapor.go.id secara otomatis — dengan reward yang bisa dicairkan ke rekening bank, dibangun di atas transparansi blockchain.
-
-**Submission untuk**: [OpenClaw Agenthon Indonesia 2026](https://luma.com/openclaw-agenthon-id) - RISTEK × Build Club
-
-**Track**: Juara Umum + Best Payment Use Case (Doku)
+**OpenClaw Agenthon Indonesia 2026** · Tim **hayoloh** · Track: Juara Umum + **Best Payment Use Case (DOKU)**
 
 ---
 
-## Inti Sistem (3-Liner)
+## What is Rasain?
 
-1. Warga foto masalah via WhatsApp → AI agent klasifikasi pakai vision multi-modal → submit otomatis ke Lapor.go.id dengan tag instansi tepat
-2. Setelah masalah resolved oleh pemerintah daerah → citizen dapat **Rasain Points**, di-mint otomatis sebagai SPL token di Solana sebagai proof of impact
-3. Citizen redeem token → **Doku Disbursement** transfer langsung ke rekening BCA/Mandiri/dll
+280 juta warga Indonesia menghadapi masalah infrastruktur publik setiap hari — jalan
+berlubang, lampu jalan mati, sampah menumpuk, drainase mampet. Portal pemerintah
+**Lapor.go.id** ada, tapi *response rate* rendah dan warga tidak punya insentif untuk
+melapor.
 
-## Mengapa Penting
+**Rasain** adalah sistem **multi-agent AI otonom** yang menyelesaikan ini:
 
-- **280 juta warga Indonesia** dengan ribuan masalah infrastruktur tiap hari
-- **Lapor.go.id resmi pemerintah** tapi response rate <30% karena underused
-- **Tidak ada insentif untuk warga lapor** → engagement rendah
-- **Pemda tidak punya data terstruktur** untuk prioritas perbaikan
+1. **Warga lapor** lewat foto + deskripsi (web / WhatsApp / Telegram)
+2. **AI agent mengklasifikasi** masalah pakai Claude vision (kategori, severity, urgensi)
+3. **AI agent merutekan** ke instansi pemerintah yang tepat (Dinas PUPR, DLH, PLN, dll)
+4. **AI agent submit** ke Lapor.go.id dan **melacak** status secara otonom
+5. Saat masalah **terverifikasi selesai**, warga dapat **Rasain Points (RSN)** —
+   token SPL di Solana sebagai *proof of impact*
+6. Warga **menukar RSN sebagai Civic Credit**: RSN di-*burn* on-chain, sisa tagihan
+   retribusi pemerintah dibayar via **DOKU QRIS**
 
-Rasain memecahkan ini dengan: **automasi laporan + insentif ekonomi nyata + akuntabilitas on-chain**.
+> **Civic engagement → civic credit.** Berkontribusi melaporkan masalah kota
+> secara harfiah membantu warga membayar kewajiban sipilnya.
 
-## Multi-Agent Architecture (Detail di [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md))
+## Autonomous Multi-Agent Architecture
+
+7 agent spesialis, dikoordinasi oleh orchestrator dengan **autonomous loop**:
 
 ```
-Citizen → Intake Agent → Classifier Agent → Geolocator Agent
-                                                ↓
-                                          Submitter Agent (Lapor.go.id)
-                                                ↓
-                                          Tracker Agent (poll status)
-                                                ↓
-                                          Verifier Agent (impact verified)
-                                                ↓
-                                          Reward Agent
-                                          ├── SPL Token mint (Solana)
-                                          └── Doku Disbursement (IDR off-ramp)
+Citizen → Intake → Classifier (vision) → Geolocator → Submitter (Lapor.go.id)
+                                                            |
+            Reward <- Verifier <- Tracker (cron loop, no human trigger)
+              |
+   +----------+----------+
+   Solana SPL mint     DOKU QRIS (Civic Credit redemption)
 ```
+
+| Agent | Tugas | Tools |
+|---|---|---|
+| **Intake** | Normalisasi laporan dari channel apapun | — |
+| **Classifier** | Klasifikasi foto via Claude vision | `anthropic` vision API |
+| **Geolocator** | Routing ke instansi + SLA | reference data |
+| **Submitter** | Submit ke Lapor.go.id | portal API |
+| **Tracker** | Poll status + eskalasi (autonomous cron) | portal API |
+| **Verifier** | Verifikasi resolusi → trigger reward | — |
+| **Reward** | Mint/burn RSN + DOKU Civic Credit | Solana SPL, DOKU MCP |
+
+**Dua entry point autonomous loop:**
+- `process_report()` — event-driven (laporan masuk)
+- `run_tracker_cycle()` — **cron-driven, zero human input** (tiap 20 detik)
+
+Setiap langkah menulis *reasoning trace* — dashboard menampilkan "jejak pikir" agent
+secara live. Detail lengkap: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
 
 ## Quick Start
 
-### Prerequisites
+### Prasyarat
 - Python 3.11+
 - Node.js 20+
-- Anthropic API key
-- Doku Sandbox account (Brand ID + API Key)
-- Mem9 API key (auto-provisioned via Claude Code plugin)
 
-### Setup (< 10 menit)
+### 1. Backend (agent + API)
 
 ```bash
-# 1. Clone
 git clone https://github.com/PugarHuda/OpenClaw2026_hayoloh_Rasain.git
 cd OpenClaw2026_hayoloh_Rasain
 
-# 2. Setup Python env
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+# Windows:        .venv\Scripts\activate
+# macOS / Linux:  source .venv/bin/activate
 pip install -e .
 
-# 3. Setup environment
-cp .env.example .env
-# Edit .env dengan credentials
-
-# 4. Setup frontend
-cd web && npm install && cd ..
-
-# 5. Generate Solana devnet wallet (untuk SPL token)
-python scripts/setup_solana.py
-
-# 6. Run
-# Terminal 1: Backend agent + API
-uvicorn api.main:app --reload --port 8000
-
-# Terminal 2: Frontend dashboard
-cd web && npm run dev
+cp .env.example .env          # opsional — lihat "DEMO_MODE" di bawah
+uvicorn api.main:app --port 8000
 ```
 
-## Demo
+### 2. Frontend (dashboard)
 
-- **Live**: TBD (will deploy to Vercel + Sumopod)
-- **Video**: TBD (YouTube Unlisted, max 2 menit)
-- **Pitch Deck**: [docs/PitchDeck.pdf](./docs/PitchDeck.pdf)
+```bash
+cd web
+npm install
+npm run dev                   # http://localhost:3000
+```
 
-## Tech Stack
+### 3. Jalankan demo end-to-end (cara tercepat memverifikasi)
 
-- **AI Agent**: [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python) + [Anthropic Claude](https://www.anthropic.com)
-- **Payment**: [DOKU MCP Server](https://docs.doku.com/accept-payments/integration-tools/doku-mcp-server) (QRIS, VA, Disbursement)
-- **Memory**: [Mem9](https://mem9.ai/) (persistent agent memory)
-- **Web3**: Solana devnet + SPL Token Program
-- **Frontend**: Next.js 14 + shadcn/ui + Tailwind
-- **Backend**: FastAPI + uvicorn
-- **Hosting**: Vercel (web) + Sumopod (agent backend)
+```bash
+python scripts/demo.py
+```
 
-## Authors
+Ini menjalankan SELURUH pipeline: 3 warga melapor → klasifikasi → routing →
+submit → verifikasi otonom → mint RSN → redeem Civic Credit — dan mencetak
+*reasoning trace* tiap agent.
 
-- **hayoloh (Pugar Huda Mantoro)** — Solo builder with Claude Code as pair programmer
+## DEMO_MODE — Berjalan Tanpa Credentials
+
+**`python scripts/demo.py` dan seluruh sistem berjalan penuh tanpa credential apapun.**
+
+Setiap tool eksternal *graceful-degrade* ke mock yang realistis bila credential
+tidak ada:
+
+| Tool | Dengan credential | Tanpa credential (DEMO_MODE) |
+|---|---|---|
+| Classifier | Claude vision sungguhan | Klasifikasi berbasis kata kunci |
+| DOKU | QRIS/VA live via DOKU MCP | Mock QRIS (struktur respons sama) |
+| Solana | Mint/burn SPL on-chain | Mock signature tx |
+
+Untuk menjalankan **mode live penuh**, isi `.env` (lihat `.env.example`):
+- `ANTHROPIC_API_KEY` — Claude vision
+- `DOKU_CLIENT_ID` + `DOKU_AUTHORIZATION_BASE64` — DOKU MCP sandbox
+- `SOLANA_MINT_AUTHORITY_KEYPAIR_PATH` + `RSN_MINT_ADDRESS` — Solana devnet
+  (jalankan `python scripts/setup_solana.py` untuk membuat mint)
+
+## API Endpoints
+
+| Method | Path | Fungsi |
+|---|---|---|
+| POST | `/report` | Submit laporan (jalankan pipeline) |
+| POST | `/redeem` | Tukar RSN jadi Civic Credit |
+| POST | `/tracker/run` | Trigger satu siklus tracker |
+| POST | `/portal/resolve-all` | Simulasi instansi menyelesaikan laporan (demo) |
+| GET | `/reports` `/citizens` `/logs` `/stats` | Data untuk dashboard |
+
+## Tech Stack & AI Tools
+
+- **AI Orchestration**: [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python)
+- **LLM / Vision**: Anthropic **Claude Sonnet 4.6** (klasifikasi multi-modal)
+- **Payment**: **DOKU MCP Server** (QRIS, Virtual Account) — *Best Payment Track*
+- **Memory**: **Mem9** (persistent agent memory, Claude Code plugin)
+- **Web3**: **Solana** devnet + SPL Token Program (Rasain Points)
+- **Backend**: FastAPI + APScheduler (autonomous loop)
+- **Frontend**: Next.js 16 + Tailwind
+- **Hosting**: Vercel (web) + Sumopod (agent)
+
+## Project Structure
+
+```
+agent/
+  orchestrator.py      # autonomous multi-agent loop
+  models.py            # Citizen / Report / Reward / AgentLog
+  store.py             # JSON-backed repository
+  config.py            # env settings
+  tools/
+    classifier.py      # Claude vision classification
+    geolocator.py      # agency routing
+    lapor_portal.py    # Lapor.go.id submitter + tracker
+    doku.py            # DOKU MCP payment client
+    solana_token.py    # Solana SPL token (mint/burn)
+    reward.py          # earn + redeem Civic Credit
+    intake.py          # channel-agnostic entry
+api/main.py            # FastAPI backend
+web/                   # Next.js dashboard
+scripts/demo.py        # end-to-end demo
+docs/ARCHITECTURE.md   # full design
+```
+
+## Demo & Links
+
+- **Demo Video**: *(YouTube Unlisted — lihat Devpost)*
+- **Live Deployment**: *(lihat Devpost)*
+- **Pitch Deck**: [`docs/`](./docs/)
+
+## Author
+
+**Tim hayoloh** — Pugar Huda Mantoro · OpenClaw Agenthon Indonesia 2026
 
 ## License
 
-MIT — see [LICENSE](./LICENSE)
-
----
-
-*Built in 12 hours for OpenClaw Agenthon Indonesia 2026 - 15 Mei 2026.*
+MIT — lihat [LICENSE](./LICENSE)
