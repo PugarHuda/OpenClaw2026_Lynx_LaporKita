@@ -162,9 +162,14 @@ docs/ARCHITECTURE.md   # full design
 
 ## Demo & Links
 
+- **Live Dashboard**: https://rasain-web.vercel.app
+- **Live API**: https://rasain-backend.vercel.app (`/health`, `/stats`, `/logs`)
 - **Demo Video**: *(YouTube Unlisted — lihat Devpost)*
-- **Live Deployment**: *(lihat Devpost)*
-- **Pitch Deck**: [`docs/`](./docs/)
+- **Pitch Deck**: [`docs/OpenClaw2026_hayoloh_Rasain.pdf`](./docs/)
+
+> Catatan: live backend di Vercel berjalan serverless — state in-memory
+> (reset saat cold start). Untuk demo penuh dengan autonomous scheduler +
+> persistensi, jalankan lokal (lihat Quick Start).
 
 ## Author
 

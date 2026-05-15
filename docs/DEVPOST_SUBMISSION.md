@@ -88,8 +88,9 @@ credit RWA untuk dampak cleanup, dan DAO tata kelola per kota.
 
 ## Links
 - **GitHub**: https://github.com/PugarHuda/OpenClaw2026_hayoloh_Rasain
+- **Live Deployment**: https://rasain-web.vercel.app
+- **Live API**: https://rasain-backend.vercel.app
 - **Demo Video**: (YouTube Unlisted — isi setelah upload)
-- **Live Deployment**: (opsional — isi jika sempat deploy)
 - **Pitch Deck**: docs/OpenClaw2026_hayoloh_Rasain.pdf (upload ke Devpost)
 
 ---
