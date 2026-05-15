@@ -1,0 +1,30 @@
+# Render blueprint — Rasain agent backend.
+# Deploy: render.com → New → Blueprint → connect this repo.
+# Runs in DEMO_MODE by default (no secrets needed). Add SUMOPOD_API_KEY /
+# DOKU_* env vars in the Render dashboard to enable live vision + payments.
+
+services:
+  - type: web
+    name: rasain-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -e .
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: APP_ENV
+        value: production
+      - key: SUMOPOD_API_KEY
+        sync: false
+      - key: SUMOPOD_BASE_URL
+        value: https://ai.sumopod.com/v1
+      - key: SUMOPOD_VISION_MODEL
+        value: gpt-4o-mini
+      - key: DOKU_CLIENT_ID
+        sync: false
+      - key: DOKU_AUTHORIZATION_BASE64
+        sync: false
+      - key: DOKU_MCP_URL
+        value: https://api-sandbox.doku.com/doku-mcp-server/mcp
