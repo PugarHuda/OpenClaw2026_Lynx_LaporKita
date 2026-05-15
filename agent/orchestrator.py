@@ -291,7 +291,8 @@ async def process_telegram_updates() -> dict:
                 f"Instansi  : {result['instansi_target']}\n"
                 f"No. Tiket : <code>{result['ticket_id']}</code>\n\n"
                 f"Agent telah mengirim email resmi ke instansi terkait. "
-                f"Kamu akan dapat notifikasi di sini saat laporan terverifikasi.",
+                f"Kamu akan dapat notifikasi + reward saat laporan terverifikasi.\n\n"
+                f"📊 Pantau laporanmu: {get_settings().dashboard_url}/dashboard",
             )
         elif result["status"] == "needs_better_photo":
             await asyncio.to_thread(
@@ -385,14 +386,17 @@ async def _tracker_cycle_body() -> dict:
             # --- Notify the citizen on Telegram (round-trip closed) ---
             citizen = store.get_citizen(report.citizen_id)
             if citizen and citizen.telegram_chat_id:
+                dash = f"{get_settings().dashboard_url}/dashboard"
                 await asyncio.to_thread(
                     send_message, citizen.telegram_chat_id,
                     f"🎉 <b>Laporanmu sudah selesai ditangani!</b>\n\n"
                     f"Tiket <code>{report.lapor_ticket_id}</code> ({report.category}) "
                     f"di {report.kota} telah diverifikasi selesai.\n\n"
                     f"Kamu mendapat <b>{reward.points_earned} Rasain Points (RSN)</b> "
-                    f"sebagai apresiasi. Tukar jadi Civic Credit di dashboard untuk "
-                    f"potongan retribusi. Terima kasih sudah menjaga kotamu! 🙏",
+                    f"sebagai apresiasi 🪙\n\n"
+                    f"👉 <b>Klaim reward-mu:</b> {dash}\n"
+                    f"Tukar RSN jadi Civic Credit untuk potongan retribusi. "
+                    f"Terima kasih sudah menjaga kotamu! 🙏",
                 )
                 _log(
                     "verifier", "notify_citizen",

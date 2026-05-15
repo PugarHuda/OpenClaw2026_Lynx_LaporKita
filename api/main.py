@@ -219,6 +219,37 @@ async def agent_logs(limit: int = 50) -> list[dict]:
     return [log.model_dump(mode="json") for log in reversed(logs)]
 
 
+@app.get("/heatmap")
+async def heatmap() -> dict:
+    """Geographic report density per city + most active citizen reporters."""
+    store = get_store()
+    reports = store.list_reports()
+
+    by_city: dict[str, dict] = {}
+    for r in reports:
+        city = by_city.setdefault(
+            r.kota, {"kota": r.kota, "total": 0, "resolved": 0, "categories": {}}
+        )
+        city["total"] += 1
+        if r.status.value in ("resolved", "verified"):
+            city["resolved"] += 1
+        city["categories"][r.category] = city["categories"].get(r.category, 0) + 1
+
+    reporter_counts: dict[str, int] = {}
+    for r in reports:
+        citizen = store.get_citizen(r.citizen_id)
+        name = citizen.name if citizen else "Anonim"
+        reporter_counts[name] = reporter_counts.get(name, 0) + 1
+
+    return {
+        "cities": sorted(by_city.values(), key=lambda c: -c["total"]),
+        "top_reporters": sorted(
+            ({"name": n, "reports": c} for n, c in reporter_counts.items()),
+            key=lambda x: -x["reports"],
+        )[:5],
+    }
+
+
 @app.get("/stats")
 async def stats() -> dict:
     """Aggregate metrics for the dashboard hero numbers."""

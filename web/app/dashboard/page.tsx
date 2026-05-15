@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, type AgentLog, type Citizen, type Report, type Stats } from "@/lib/api";
+import {
+  api,
+  type AgentLog,
+  type Citizen,
+  type Heatmap,
+  type Report,
+  type Stats,
+} from "@/lib/api";
 
 const AGENT_COLORS: Record<string, string> = {
   intake: "text-sky-400",
@@ -63,14 +70,15 @@ export default function Dashboard() {
   const [logs, setLogs] = useState<AgentLog[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [citizens, setCitizens] = useState<Citizen[]>([]);
+  const [heat, setHeat] = useState<Heatmap | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const traceRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
     try {
-      const [s, l, r, c] = await Promise.all([
-        api.stats(), api.logs(), api.reports(), api.citizens(),
+      const [s, l, r, c, h] = await Promise.all([
+        api.stats(), api.logs(), api.reports(), api.citizens(), api.heatmap(),
       ]);
       // Never regress to an empty view: a serverless cold instance may briefly
       // report no data — keep the last-known populated state instead of blinking.
@@ -80,6 +88,7 @@ export default function Dashboard() {
       setLogs((prev) => (l.length === 0 && prev.length > 0 ? prev : l));
       setReports((prev) => (r.length === 0 && prev.length > 0 ? prev : r));
       setCitizens((prev) => (c.length === 0 && prev.length > 0 ? prev : c));
+      setHeat((prev) => (h.cities.length === 0 && prev ? prev : h));
     } catch {
       /* backend not reachable — keep last-known state, keep polling */
     }
@@ -310,6 +319,79 @@ export default function Dashboard() {
                 </button>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* Heatmap — report density per city + active reporters */}
+        <section className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900/40">
+          <div className="border-b border-zinc-800 px-4 py-3 text-sm font-semibold">
+            Heatmap Laporan
+            <span className="ml-2 text-xs font-normal text-zinc-500">
+              kepadatan masalah per kota &amp; warga paling aktif
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-5 p-4 lg:grid-cols-[2fr_1fr]">
+            {/* City heat grid */}
+            <div>
+              <p className="mb-2 text-xs uppercase tracking-wide text-zinc-500">
+                Kepadatan Laporan per Kota
+              </p>
+              {!heat || heat.cities.length === 0 ? (
+                <p className="text-sm text-zinc-600">Belum ada data lokasi.</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {heat.cities.map((city) => {
+                    const max = Math.max(...heat.cities.map((c) => c.total), 1);
+                    const intensity = city.total / max;
+                    return (
+                      <div
+                        key={city.kota}
+                        className="rounded-lg border border-zinc-800 p-3"
+                        style={{
+                          background: `rgba(251, 191, 36, ${0.08 + intensity * 0.5})`,
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold">{city.kota}</span>
+                          <span className="text-lg font-bold text-amber-300">
+                            {city.total}
+                          </span>
+                        </div>
+                        <div className="mt-1 text-xs text-zinc-400">
+                          {city.resolved}/{city.total} selesai
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {/* Active reporters */}
+            <div>
+              <p className="mb-2 text-xs uppercase tracking-wide text-zinc-500">
+                Warga Paling Aktif
+              </p>
+              {!heat || heat.top_reporters.length === 0 ? (
+                <p className="text-sm text-zinc-600">Belum ada pelapor.</p>
+              ) : (
+                <div className="space-y-2">
+                  {heat.top_reporters.map((rep, i) => (
+                    <div
+                      key={rep.name}
+                      className="flex items-center justify-between rounded-lg border border-zinc-800/80 bg-zinc-950/60 px-3 py-2"
+                    >
+                      <span className="text-sm">
+                        <span className="mr-2 text-zinc-500">#{i + 1}</span>
+                        {rep.name}
+                      </span>
+                      <span className="text-sm font-semibold text-amber-300">
+                        {rep.reports} laporan
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </section>
 

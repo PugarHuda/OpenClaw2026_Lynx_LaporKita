@@ -58,8 +58,21 @@ export interface Citizen {
   rsn_onchain: number;
 }
 
+export interface CityHeat {
+  kota: string;
+  total: number;
+  resolved: number;
+  categories: Record<string, number>;
+}
+
+export interface Heatmap {
+  cities: CityHeat[];
+  top_reporters: { name: string; reports: number }[];
+}
+
 export const api = {
   stats: () => get<Stats>("/stats"),
+  heatmap: () => get<Heatmap>("/heatmap"),
   logs: (limit = 40) => get<AgentLog[]>(`/logs?limit=${limit}`),
   reports: () => get<Report[]>("/reports"),
   citizens: () => get<Citizen[]>("/citizens"),

@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     gov_email_demo_recipient: str = "" # demo target playing the agency inbox
 
     # --- App ---
+    dashboard_url: str = "https://rasain-web.vercel.app"
     app_port: int = 8000
     app_host: str = "0.0.0.0"
     app_env: str = "development"
