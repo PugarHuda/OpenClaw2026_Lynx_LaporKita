@@ -45,6 +45,30 @@ def solscan_url(signature_or_address: str, kind: str = "tx") -> str:
     return f"https://solscan.io/{kind}/{signature_or_address}?cluster=devnet"
 
 
+def _solana_configured() -> bool:
+    """True when the Solana mint + authority keypair are available."""
+    s = get_settings()
+    return bool(
+        s.rsn_mint_address
+        and s.solana_mint_authority_keypair_path
+        and Path(s.solana_mint_authority_keypair_path).exists()
+    )
+
+
+def _mock_tx(label: str, amount: int) -> dict[str, str]:
+    """DEMO_MODE on-chain result — same shape as a real Solana tx response."""
+    import hashlib
+
+    sig = "DEMO" + hashlib.sha256(f"{label}{amount}".encode()).hexdigest()[:40]
+    return {
+        "signature": sig,
+        "solscan_url": solscan_url(sig),
+        "amount": str(amount),
+        "_demo_mode": True,
+        "_note": "Configure Solana keypair + RSN_MINT_ADDRESS for real on-chain tx.",
+    }
+
+
 async def create_rsn_mint() -> str:
     """Create the Rasain Points (RSN) SPL token mint. One-time setup.
 
@@ -93,6 +117,8 @@ async def mint_rsn(citizen_wallet_address: str, amount: int) -> dict[str, str]:
 
     Returns the transaction signature and a Solscan proof URL.
     """
+    if not _solana_configured():
+        return _mock_tx("mint", amount)
     settings = get_settings()
     authority = load_mint_authority()
     owner = Pubkey.from_string(citizen_wallet_address)
@@ -128,6 +154,8 @@ async def burn_rsn(
     Two-signer transaction: the mint authority pays the fee (the custodial
     citizen wallet holds no SOL), the citizen keypair authorizes the burn.
     """
+    if not _solana_configured():
+        return _mock_tx("burn", amount)
     settings = get_settings()
     authority = load_mint_authority()
     owner_kp = _keypair_from_secret(citizen_wallet_secret)
@@ -158,6 +186,8 @@ async def burn_rsn(
 
 async def get_rsn_balance(citizen_wallet_address: str) -> int:
     """Read a citizen's on-chain Rasain Points balance. Returns 0 if no ATA yet."""
+    if not _solana_configured():
+        return 0
     settings = get_settings()
     owner = Pubkey.from_string(citizen_wallet_address)
     mint = Pubkey.from_string(settings.rsn_mint_address)

@@ -72,6 +72,24 @@ def _format_idr_amount(amount_idr: int) -> str:
     return f"{amount_idr}.00"
 
 
+def _doku_configured() -> bool:
+    """True when DOKU sandbox credentials are present."""
+    s = get_settings()
+    return bool(s.doku_client_id and s.doku_authorization_base64)
+
+
+def _mock_qris(invoice_number: str, amount_idr: int) -> dict[str, Any]:
+    """DEMO_MODE QRIS response — same shape as DOKU, for credential-free runs."""
+    return {
+        "qrContent": f"00020101212600{invoice_number}5204599953033605802ID",
+        "referenceNo": invoice_number,
+        "qrImageUrl": f"https://api-sandbox.doku.com/qr/{invoice_number}.png",
+        "amount": _format_idr_amount(amount_idr),
+        "_demo_mode": True,
+        "_note": "Set DOKU credentials in .env for a live QRIS via DOKU MCP.",
+    }
+
+
 def compute_civic_credit(
     retribusi_amount_idr: int,
     rsn_balance: int,
@@ -116,6 +134,8 @@ async def create_retribusi_qris(
             "amount_idr": 0,
             "note": "Tagihan sepenuhnya tertutup Rasain Points — tidak perlu QRIS.",
         }
+    if not _doku_configured():
+        return _mock_qris(invoice_number, amount_idr)
     return await _call_doku(
         "create_qris_payment",
         {

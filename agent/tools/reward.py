@@ -20,11 +20,7 @@ from agent.config import get_settings
 from agent.models import Citizen, Report, Reward, RewardStatus
 from agent.store import get_store
 from agent.tools.doku import compute_civic_credit, create_retribusi_qris
-from agent.tools.solana_token import (
-    get_rsn_balance,
-    mint_rsn,
-    new_citizen_wallet,
-)
+from agent.tools.solana_token import mint_rsn, new_citizen_wallet
 
 
 def _ensure_wallet(citizen: Citizen) -> Citizen:
@@ -66,7 +62,8 @@ async def earn_reward_for_report(report: Report) -> Reward:
         to_mint = citizen.rsn_offchain
         mint_result = await mint_rsn(citizen.solana_wallet, to_mint)
         citizen.rsn_offchain = 0
-        citizen.rsn_onchain = await get_rsn_balance(citizen.solana_wallet)
+        # Track balance logically; on-chain tx is the verifiable proof.
+        citizen.rsn_onchain += to_mint
         reward.status = RewardStatus.MINTED
         reward.minted_at = datetime.utcnow()
         reward.spl_mint_tx = mint_result["signature"]
@@ -98,7 +95,8 @@ async def redeem_civic_credit(
     if not citizen.solana_wallet:
         raise ValueError("Citizen belum punya RSN — belum ada laporan verified.")
 
-    rsn_balance = await get_rsn_balance(citizen.solana_wallet)
+    # Use the tracked balance (mirrors on-chain; works in DEMO_MODE too).
+    rsn_balance = citizen.rsn_onchain
     credit = compute_civic_credit(
         retribusi_amount_idr, rsn_balance, settings.redemption_rate_idr_per_rsn
     )
@@ -121,7 +119,7 @@ async def redeem_civic_credit(
         )
         result["burn_tx"] = burn_result["signature"]
         result["burn_solscan_url"] = burn_result["solscan_url"]
-        citizen.rsn_onchain = await get_rsn_balance(citizen.solana_wallet)
+        citizen.rsn_onchain -= credit["rsn_used"]
         store.upsert_citizen(citizen)
 
     # Generate DOKU QRIS for the remaining cash due.
