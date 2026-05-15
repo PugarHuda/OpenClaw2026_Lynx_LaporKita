@@ -95,9 +95,11 @@ def submit_to_lapor(
 
 
 # Demo pacing: how long (seconds) before a ticket auto-progresses. In V2 this
-# is replaced by real Lapor.go.id status webhooks.
-_AUTO_IN_PROGRESS_SECONDS = 12
-_AUTO_RESOLVED_SECONDS = 28
+# is replaced by real Lapor.go.id status webhooks. The window is wide enough
+# that a demo recording can narrate the pipeline before tickets self-resolve;
+# the dashboard's "Simulasi Respon Instansi" button forces resolution sooner.
+_AUTO_IN_PROGRESS_SECONDS = 90
+_AUTO_RESOLVED_SECONDS = 240
 
 
 def _maybe_auto_advance(ticket: dict[str, Any]) -> dict[str, Any]:

@@ -31,27 +31,27 @@ IMAGES = Path(__file__).resolve().parent.parent / "data" / "images"
 # becomes a "top reporter" and accumulates enough RSN to redeem.
 REPORTS = [
     {
-        "file": "pothole-road.jpg", "wa_number": "628110000001", "kota": "Yogyakarta",
+        "file": "pothole-road.jpg", "email": "andi.warga@email.com", "kota": "Yogyakarta",
         "description": "Jalan berlubang besar di tikungan dekat SD, sudah beberapa "
                        "pemotor terjatuh terutama saat hujan",
     },
     {
-        "file": "broken-streetlight.jpg", "wa_number": "628110000001", "kota": "Yogyakarta",
+        "file": "broken-streetlight.jpg", "email": "andi.warga@email.com", "kota": "Yogyakarta",
         "description": "Lampu PJU mati total sepanjang Jl. Diponegoro, gelap gulita "
                        "dan rawan tindak kejahatan di malam hari",
     },
     {
-        "file": "garbage-pile.jpg", "wa_number": "628110000002", "kota": "Surabaya",
+        "file": "garbage-pile.jpg", "email": "siti.warga@email.com", "kota": "Surabaya",
         "description": "Sampah menumpuk di TPS pasar lebih dari seminggu tidak diangkut, "
                        "bau menyengat sampai ke rumah warga",
     },
     {
-        "file": "fallen-tree.jpg", "wa_number": "628110000003", "kota": "Bandung",
+        "file": "fallen-tree.jpg", "email": "budi.warga@email.com", "kota": "Bandung",
         "description": "Pohon besar tumbang menutup separuh badan jalan setelah angin "
                        "kencang, lalu lintas tersendat",
     },
     {
-        "file": "flood-street.jpg", "wa_number": "628110000004", "kota": "Jakarta",
+        "file": "flood-street.jpg", "email": "rina.warga@email.com", "kota": "Jakarta",
         "description": "Banjir merendam jalan di depan pertokoan, kendaraan sulit lewat, "
                        "drainase meluap setiap hujan deras",
     },
@@ -99,8 +99,7 @@ def main() -> None:
                 "/report/upload",
                 files={"photo": (r["file"], fh, "image/jpeg")},
                 data={
-                    "wa_number": r["wa_number"],
-                    "citizen_name": "warga",  # diabaikan — laporan anonim
+                    "email": r["email"],  # identitas login warga
                     "description": r["description"],
                     "kota": r["kota"],
                 },

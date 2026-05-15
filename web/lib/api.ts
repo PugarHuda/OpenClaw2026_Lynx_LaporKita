@@ -53,9 +53,25 @@ export interface Citizen {
   id: string;
   name: string;
   wa_number: string;
+  email: string | null;
   solana_wallet: string | null;
   rsn_offchain: number;
   rsn_onchain: number;
+}
+
+export interface Reward {
+  id: string;
+  status: string;
+  points_earned: number;
+  spl_solscan_url: string | null;
+  burn_tx: string | null;
+  idr_amount: number | null;
+}
+
+export interface Me {
+  citizen: Citizen;
+  reports: Report[];
+  rewards: Reward[];
 }
 
 export interface CityHeat {
@@ -76,6 +92,7 @@ export const api = {
   logs: (limit = 40) => get<AgentLog[]>(`/logs?limit=${limit}`),
   reports: () => get<Report[]>("/reports"),
   citizens: () => get<Citizen[]>("/citizens"),
+  me: (email: string) => get<Me>(`/me?email=${encodeURIComponent(email)}`),
   submitReport: (body: Record<string, unknown>) => post<Record<string, unknown>>("/report", body),
   submitReportUpload: async (formData: FormData): Promise<Record<string, unknown>> => {
     const res = await fetch(`${API_URL}/report/upload`, { method: "POST", body: formData });

@@ -37,28 +37,38 @@ def intake_report(
     bank_name: str | None = None,
     channel: str = "web",
     telegram_chat_id: str | None = None,
+    email: str | None = None,
 ) -> dict[str, Any]:
     """Normalize an incoming citizen report.
 
     Looks up or creates the Citizen, then returns a raw report payload
     (not yet classified) for the orchestrator to process.
+
+    Identity: web reporters are keyed by `email` (their login + ownership
+    anchor); Telegram/WhatsApp reporters are keyed by `wa_number`.
     """
     store = get_store()
-    citizen = store.get_citizen_by_wa(wa_number)
+    citizen = store.get_citizen_by_email(email) if email else None
     if citizen is None:
-        # Reports are anonymous: the real name is discarded, the citizen is
-        # known only by a pseudonymous handle + (later) their Solana wallet.
+        citizen = store.get_citizen_by_wa(wa_number)
+    if citizen is None:
+        # The public-facing identity stays a pseudonymous handle; the email is
+        # a private login key, never shown on the dashboard.
         citizen = Citizen(
             wa_number=wa_number,
-            name=_anonymous_handle(wa_number),
+            email=email,
+            name=_anonymous_handle(email or wa_number),
             bank_account=bank_account,
             bank_name=bank_name,
             telegram_chat_id=telegram_chat_id,
         )
         store.upsert_citizen(citizen)
     else:
-        # Keep contact details fresh if newly provided.
+        # Keep identity + contact details fresh if newly provided.
         changed = False
+        if email and not citizen.email:
+            citizen.email = email
+            changed = True
         if bank_account and not citizen.bank_account:
             citizen.bank_account, citizen.bank_name = bank_account, bank_name
             changed = True

@@ -21,8 +21,7 @@ export default function LaporPage() {
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [description, setDescription] = useState("");
-  const [name, setName] = useState("");
-  const [wa, setWa] = useState("");
+  const [email, setEmail] = useState("");
   const [kota, setKota] = useState("Bekasi");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
@@ -35,8 +34,12 @@ export default function LaporPage() {
   };
 
   const submit = async () => {
-    if (!photo || !description || !name) {
-      setError("Foto, deskripsi, dan nama wajib diisi.");
+    if (!photo || !description || !email) {
+      setError("Foto, deskripsi, dan email wajib diisi.");
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setError("Format email tidak valid.");
       return;
     }
     setError(null);
@@ -45,8 +48,7 @@ export default function LaporPage() {
     try {
       const fd = new FormData();
       fd.append("photo", photo);
-      fd.append("wa_number", wa || "6280000000000");
-      fd.append("citizen_name", name);
+      fd.append("email", email.trim());
       fd.append("description", description);
       fd.append("kota", kota);
       const res = (await api.submitReportUpload(fd)) as unknown as Result;
@@ -116,23 +118,20 @@ export default function LaporPage() {
           </div>
 
           {/* Identity */}
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-sm font-medium">Nama *</label>
+              <label className="text-sm font-medium">Email *</label>
               <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="kamu@email.com"
                 className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm outline-none focus:border-amber-500"
               />
-            </div>
-            <div>
-              <label className="text-sm font-medium">No. WhatsApp</label>
-              <input
-                value={wa}
-                onChange={(e) => setWa(e.target.value)}
-                placeholder="6281..."
-                className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm outline-none focus:border-amber-500"
-              />
+              <p className="mt-1 text-xs text-zinc-500">
+                Email = login-mu untuk melacak laporan &amp; klaim reward.
+                Tidak ditampilkan publik — identitasmu tetap anonim.
+              </p>
             </div>
             <div>
               <label className="text-sm font-medium">Kota</label>
@@ -180,12 +179,20 @@ export default function LaporPage() {
                   <p className="text-xs text-zinc-500">Analisis AI agent:</p>
                   <p className="mt-1 text-sm text-zinc-300">{result.classification_reasoning}</p>
                 </div>
-                <Link
-                  href="/dashboard"
-                  className="mt-4 inline-block text-sm text-amber-400 hover:underline"
-                >
-                  Lihat agent melacak laporan ini di Dashboard &rarr;
-                </Link>
+                <div className="mt-4 flex flex-col gap-1">
+                  <Link
+                    href={`/saya?email=${encodeURIComponent(email.trim())}`}
+                    className="text-sm font-medium text-amber-400 hover:underline"
+                  >
+                    Lacak laporan &amp; klaim reward dengan email-mu &rarr;
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    className="text-sm text-zinc-400 hover:underline"
+                  >
+                    Lihat agent bekerja di Dashboard &rarr;
+                  </Link>
+                </div>
               </>
             ) : (
               <p className="text-sm text-amber-300">

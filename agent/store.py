@@ -69,6 +69,14 @@ class Store:
     def get_citizen_by_wa(self, wa_number: str) -> Citizen | None:
         return next((c for c in self.citizens.values() if c.wa_number == wa_number), None)
 
+    def get_citizen_by_email(self, email: str) -> Citizen | None:
+        target = email.strip().lower()
+        return next(
+            (c for c in self.citizens.values()
+             if c.email and c.email.strip().lower() == target),
+            None,
+        )
+
     # --- report ---
     def upsert_report(self, report: Report) -> Report:
         self.reports[str(report.id)] = report

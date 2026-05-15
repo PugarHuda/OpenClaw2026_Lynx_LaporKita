@@ -44,6 +44,7 @@ class Citizen(BaseModel):
     """Warga yang lapor masalah dan terima reward."""
     id: UUID = Field(default_factory=uuid4)
     wa_number: str
+    email: str | None = None   # login identity for web reporters (owns their data)
     name: str
     bank_account: str | None = None       # untuk Doku Disbursement
     bank_name: str | None = None          # BCA, Mandiri, BRI, BNI

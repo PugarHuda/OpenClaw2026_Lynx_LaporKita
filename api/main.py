@@ -76,6 +76,7 @@ class ReportRequest(BaseModel):
     image_path: str
     description: str
     kota: str
+    email: str | None = None
     gps_lat: float | None = None
     gps_lon: float | None = None
     bank_account: str | None = None
@@ -104,6 +105,7 @@ async def submit_report(req: ReportRequest) -> dict:
         image_path=req.image_path,
         description=req.description,
         kota=req.kota,
+        email=req.email,
         gps_lat=req.gps_lat,
         gps_lon=req.gps_lon,
         bank_account=req.bank_account,
@@ -116,10 +118,11 @@ async def submit_report(req: ReportRequest) -> dict:
 @app.post("/report/upload")
 async def submit_report_upload(
     photo: UploadFile = File(...),
-    wa_number: str = Form(...),
-    citizen_name: str = Form(...),
+    wa_number: str = Form(""),
+    citizen_name: str = Form(""),
     description: str = Form(...),
     kota: str = Form(...),
+    email: str = Form(""),
     bank_account: str = Form(""),
     bank_name: str = Form(""),
 ) -> dict:
@@ -135,11 +138,12 @@ async def submit_report_upload(
         image_path = tmp.name
 
     intake_payload = intake_report(
-        wa_number=wa_number,
+        wa_number=wa_number or email or "web-anon",
         citizen_name=citizen_name,
         image_path=image_path,
         description=description,
         kota=kota,
+        email=email or None,
         bank_account=bank_account or None,
         bank_name=bank_name or None,
         channel="web-upload",
@@ -205,6 +209,28 @@ async def get_citizen(citizen_id: str) -> dict:
         raise HTTPException(status_code=404, detail="Citizen tidak ditemukan")
     rewards = get_store().list_rewards_by_citizen(citizen_id)
     reports = get_store().list_reports_by_citizen(citizen_id)
+    return {
+        "citizen": citizen.model_dump(mode="json"),
+        "reports": [r.model_dump(mode="json") for r in reports],
+        "rewards": [r.model_dump(mode="json") for r in rewards],
+    }
+
+
+@app.get("/me")
+async def my_account(email: str) -> dict:
+    """Email login (lightweight): a reporter looks up the data they own.
+
+    The email is the ownership anchor — it returns the citizen's reports,
+    RSN balance, and rewards, so they can track and claim from one place.
+    """
+    citizen = get_store().get_citizen_by_email(email)
+    if citizen is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Email belum terdaftar — kirim laporan pertamamu dulu.",
+        )
+    reports = get_store().list_reports_by_citizen(str(citizen.id))
+    rewards = get_store().list_rewards_by_citizen(str(citizen.id))
     return {
         "citizen": citizen.model_dump(mode="json"),
         "reports": [r.model_dump(mode="json") for r in reports],
