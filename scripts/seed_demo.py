@@ -117,6 +117,18 @@ def main() -> None:
             print(f"  · {r['kota']:11} status={d.get('status')}")
         time.sleep(1)  # ramah ke rate limit gateway AI
 
+    # SEED_MODE=reports → stop here, leaving reports SUBMITTED but unverified.
+    # Lets a demo video show the autonomous verify + mint + redeem happen live.
+    if os.getenv("SEED_MODE", "full").lower() == "reports":
+        stats = client.get("/stats").json()
+        logs = client.get("/logs?limit=200").json()
+        _hr("SELESAI — mode 'reports' (laporan saja, belum diverifikasi)")
+        print(f"  laporan : {stats['total_reports']} (status submitted)")
+        print(f"  jejak reasoning agent: {len(logs)} langkah")
+        print("  → di dashboard, klik '2 · Simulasi Respon Instansi' untuk demo live")
+        client.close()
+        return
+
     # --- Agencies resolve the tickets → autonomous tracker verifies + mints RSN ---
     _hr("Instansi merespon → tracker otonom verifikasi & mint RSN on-chain")
     res = client.post("/portal/resolve-all", timeout=120).json()
