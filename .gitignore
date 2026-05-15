@@ -68,3 +68,5 @@ logs/
 # Runtime state (generated)
 rasain_store.json
 lapor_portal_mock.json
+
+.vercel

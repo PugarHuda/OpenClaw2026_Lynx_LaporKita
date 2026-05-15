@@ -27,19 +27,19 @@ from agent.tools.reward import redeem_civic_credit
 SCENARIOS = [
     {
         "wa_number": "6281200000001", "citizen_name": "Budi Santoso",
-        "image_path": "data/images/jalan_bekasi.jpg", "kota": "Bekasi",
+        "image_path": "data/images/pothole-road.jpg", "kota": "Bekasi",
         "description": "Jalan berlubang parah di tikungan ramai, bahaya buat motor",
         "bank_account": "1234567801", "bank_name": "BCA",
     },
     {
         "wa_number": "6281200000002", "citizen_name": "Siti Aminah",
-        "image_path": "data/images/sampah_surabaya.jpg", "kota": "Surabaya",
+        "image_path": "data/images/garbage-pile.jpg", "kota": "Surabaya",
         "description": "Sampah menumpuk di TPS sudah seminggu, bau menyengat",
         "bank_account": "1234567802", "bank_name": "Mandiri",
     },
     {
         "wa_number": "6281200000003", "citizen_name": "Joko Widodo",
-        "image_path": "data/images/lampu_jakarta.jpg", "kota": "Jakarta",
+        "image_path": "data/images/broken-streetlight.jpg", "kota": "Jakarta",
         "description": "Lampu jalan PJU mati total sepanjang gang, gelap rawan",
         "bank_account": "1234567803", "bank_name": "BRI",
     },

@@ -33,13 +33,17 @@ def _api(method: str) -> str:
 
 
 def get_updates(offset: int = 0, timeout: int = 0) -> list[dict[str, Any]]:
-    """Poll Telegram for new messages since `offset`."""
+    """Poll Telegram for new messages and button taps since `offset`."""
     if not telegram_configured():
         return []
     try:
         resp = httpx.get(
             _api("getUpdates"),
-            params={"offset": offset, "timeout": timeout, "allowed_updates": '["message"]'},
+            params={
+                "offset": offset,
+                "timeout": timeout,
+                "allowed_updates": '["message","callback_query"]',
+            },
             timeout=timeout + 10,
         )
         return resp.json().get("result", []) if resp.status_code < 300 else []
@@ -68,14 +72,36 @@ def download_photo(file_id: str) -> str | None:
         return None
 
 
-def send_message(chat_id: int | str, text: str) -> bool:
-    """Send a Telegram message to a chat. Best-effort."""
+def send_message(
+    chat_id: int | str,
+    text: str,
+    buttons: list[list[dict[str, str]]] | None = None,
+) -> bool:
+    """Send a Telegram message, optionally with a clickable inline keyboard.
+
+    `buttons` is a list of rows; each button is a dict with "text" plus either
+    "url" (opens a link) or "callback_data" (taps back into the bot).
+    """
+    if not telegram_configured():
+        return False
+    payload: dict[str, Any] = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+    if buttons:
+        payload["reply_markup"] = {"inline_keyboard": buttons}
+    try:
+        resp = httpx.post(_api("sendMessage"), json=payload, timeout=15)
+        return resp.status_code < 300
+    except Exception:
+        return False
+
+
+def answer_callback(callback_query_id: str, text: str = "") -> bool:
+    """Acknowledge a button tap so Telegram stops its loading spinner."""
     if not telegram_configured():
         return False
     try:
         resp = httpx.post(
-            _api("sendMessage"),
-            json={"chat_id": chat_id, "text": text, "parse_mode": "HTML"},
+            _api("answerCallbackQuery"),
+            json={"callback_query_id": callback_query_id, "text": text},
             timeout=15,
         )
         return resp.status_code < 300

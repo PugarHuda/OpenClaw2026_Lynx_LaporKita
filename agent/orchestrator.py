@@ -38,7 +38,9 @@ from agent.tools.lapor_portal import (
 )
 from agent.tools.memory import recall, remember
 from agent.tools.reward import earn_reward_for_report
+from agent.tools.intake import intake_report
 from agent.tools.telegram import (
+    answer_callback,
     download_photo,
     extract_kota,
     get_updates,
@@ -50,6 +52,20 @@ from agent.tools.telegram import (
 _tg_offset: dict[str, int] = {"value": 0}
 
 CONFIDENCE_THRESHOLD = 0.6
+
+
+def _dashboard_url() -> str:
+    return f"{get_settings().dashboard_url}/dashboard"
+
+
+def _menu_buttons() -> list[list[dict[str, str]]]:
+    """The bot's main clickable menu — tap to act, no typing required."""
+    dash = _dashboard_url()
+    return [
+        [{"text": "📸 Cara Lapor", "callback_data": "cara_lapor"}],
+        [{"text": "📊 Buka Dashboard", "url": dash}],
+        [{"text": "🪙 Klaim Reward", "url": f"{dash}#klaim"}],
+    ]
 
 
 def _log(
@@ -239,30 +255,66 @@ async def process_report(intake_payload: dict) -> dict:
     }
 
 
+_WELCOME = (
+    "👋 <b>Halo! Aku Rasain</b> — agent AI pelaporan infrastruktur publik.\n\n"
+    "Kirim <b>foto</b> masalah (jalan rusak, lampu mati, sampah, banjir) "
+    "beserta caption singkat — aku klasifikasi, teruskan ke instansi, lacak "
+    "sampai selesai, dan kasih kamu reward 🪙.\n\n"
+    "Laporanmu <b>anonim</b> — identitasmu dilindungi.\n\n"
+    "Pilih menu di bawah 👇"
+)
+
+_HOW_TO = (
+    "📸 <b>Cara Lapor</b>\n\n"
+    "1. Foto masalah infrastrukturnya langsung dari lokasi.\n"
+    "2. Kirim foto itu ke chat ini, tulis lokasi + masalah di caption.\n"
+    "   Contoh: <i>\"jalan berlubang parah di tikungan Bekasi\"</i>\n"
+    "3. Agent AI langsung menganalisis & meneruskan ke instansi.\n"
+    "4. Kamu dapat notifikasi + reward RSN saat laporan terverifikasi.\n\n"
+    "Kirim fotonya sekarang 👍"
+)
+
+
+async def _handle_telegram_callback(chat_id: int, data: str) -> None:
+    """Respond to a tapped inline-keyboard button."""
+    if data == "cara_lapor":
+        await asyncio.to_thread(send_message, chat_id, _HOW_TO)
+    else:
+        await asyncio.to_thread(send_message, chat_id, _WELCOME, _menu_buttons())
+
+
 async def process_telegram_updates() -> dict:
-    """Poll Telegram for citizen reports — photo + caption — and process them.
+    """Poll Telegram for citizen reports and button taps, and process them.
 
     Cron-driven entry point: citizens report in their own words via the bot,
-    the agent runs the full pipeline, and replies on Telegram.
+    the agent runs the full pipeline, and replies on Telegram with clickable
+    buttons (open dashboard, claim reward).
     """
     if not telegram_configured():
         return {"processed": 0}
     updates = await asyncio.to_thread(get_updates, _tg_offset["value"], 0)
     processed = 0
+    dash = _dashboard_url()
     for upd in updates:
         _tg_offset["value"] = upd["update_id"] + 1
+
+        # --- Button tap ---
+        cq = upd.get("callback_query")
+        if cq:
+            await asyncio.to_thread(answer_callback, cq["id"])
+            cq_chat = cq.get("message", {}).get("chat", {}).get("id")
+            if cq_chat:
+                await _handle_telegram_callback(cq_chat, cq.get("data", ""))
+            continue
+
         msg = upd.get("message", {})
         chat_id = msg.get("chat", {}).get("id")
         if not chat_id:
             continue
         photos = msg.get("photo")
         if not photos:
-            await asyncio.to_thread(
-                send_message, chat_id,
-                "Halo! Kirim <b>foto</b> masalah infrastruktur, dan tulis "
-                "deskripsinya di caption foto. Contoh: \"jalan rusak parah di "
-                "tikungan Bekasi\".",
-            )
+            # No photo — greet with the clickable menu (covers /start + any text).
+            await asyncio.to_thread(send_message, chat_id, _WELCOME, _menu_buttons())
             continue
 
         caption = msg.get("caption") or "Laporan masalah infrastruktur publik"
@@ -291,8 +343,8 @@ async def process_telegram_updates() -> dict:
                 f"Instansi  : {result['instansi_target']}\n"
                 f"No. Tiket : <code>{result['ticket_id']}</code>\n\n"
                 f"Agent telah mengirim email resmi ke instansi terkait. "
-                f"Kamu akan dapat notifikasi + reward saat laporan terverifikasi.\n\n"
-                f"📊 Pantau laporanmu: {get_settings().dashboard_url}/dashboard",
+                f"Kamu akan dapat notifikasi + reward saat laporan terverifikasi.",
+                [[{"text": "📊 Pantau Laporan", "url": dash}]],
             )
         elif result["status"] == "needs_better_photo":
             await asyncio.to_thread(
@@ -386,7 +438,6 @@ async def _tracker_cycle_body() -> dict:
             # --- Notify the citizen on Telegram (round-trip closed) ---
             citizen = store.get_citizen(report.citizen_id)
             if citizen and citizen.telegram_chat_id:
-                dash = f"{get_settings().dashboard_url}/dashboard"
                 await asyncio.to_thread(
                     send_message, citizen.telegram_chat_id,
                     f"🎉 <b>Laporanmu sudah selesai ditangani!</b>\n\n"
@@ -394,9 +445,10 @@ async def _tracker_cycle_body() -> dict:
                     f"di {report.kota} telah diverifikasi selesai.\n\n"
                     f"Kamu mendapat <b>{reward.points_earned} Rasain Points (RSN)</b> "
                     f"sebagai apresiasi 🪙\n\n"
-                    f"👉 <b>Klaim reward-mu:</b> {dash}\n"
                     f"Tukar RSN jadi Civic Credit untuk potongan retribusi. "
                     f"Terima kasih sudah menjaga kotamu! 🙏",
+                    [[{"text": "🪙 Klaim Reward Sekarang",
+                       "url": f"{_dashboard_url()}#klaim"}]],
                 )
                 _log(
                     "verifier", "notify_citizen",

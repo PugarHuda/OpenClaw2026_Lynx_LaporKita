@@ -13,9 +13,13 @@ proof of impact (linkable on Solscan).
 """
 from __future__ import annotations
 
+import asyncio
 import json
-import time
 from pathlib import Path
+
+# Devnet RPC is flaky under load; a transient failure on one attempt usually
+# succeeds on the next. Retry before degrading to a mock tx.
+_TX_RETRIES = 3
 
 from solana.rpc.async_api import AsyncClient
 from solana.rpc.commitment import Confirmed
@@ -54,26 +58,6 @@ def _solana_configured() -> bool:
         and s.solana_mint_authority_keypair_path
         and Path(s.solana_mint_authority_keypair_path).exists()
     )
-
-
-# RPC health is cached briefly — a quick pre-check avoids long confirm-polling
-# hangs when the public devnet RPC is rate-limited.
-_rpc_health: dict[str, float | bool] = {"checked_at": 0.0, "healthy": False}
-
-
-async def _rpc_healthy() -> bool:
-    """Fast health probe of the Solana RPC (cached 60s). Fails fast if flaky."""
-    now = time.time()
-    if now - float(_rpc_health["checked_at"]) < 60:
-        return bool(_rpc_health["healthy"])
-    healthy = False
-    try:
-        async with AsyncClient(get_settings().solana_rpc_url, timeout=8) as client:
-            healthy = await client.is_connected()
-    except Exception:
-        healthy = False
-    _rpc_health.update(checked_at=now, healthy=healthy)
-    return healthy
 
 
 def _mock_tx(label: str, amount: int) -> dict[str, str]:
@@ -138,40 +122,43 @@ async def mint_rsn(citizen_wallet_address: str, amount: int) -> dict[str, str]:
 
     Returns the transaction signature and a Solscan proof URL.
     """
-    if not _solana_configured() or not await _rpc_healthy():
+    if not _solana_configured():
         return _mock_tx("mint", amount)
     settings = get_settings()
     authority = load_mint_authority()
     owner = Pubkey.from_string(citizen_wallet_address)
     mint = Pubkey.from_string(settings.rsn_mint_address)
-    try:
-        async with AsyncClient(settings.solana_rpc_url, timeout=20) as client:
-            token = await _get_token(client)
-            # Idempotent: only create the ATA if it does not already exist.
-            ata = get_associated_token_address(owner, mint)
-            info = await client.get_account_info(ata)
-            if info.value is None:
-                await token.create_associated_token_account(
-                    owner, skip_confirmation=False
+    for attempt in range(_TX_RETRIES):
+        try:
+            async with AsyncClient(settings.solana_rpc_url, timeout=25) as client:
+                token = await _get_token(client)
+                # Idempotent: only create the ATA if it does not already exist.
+                ata = get_associated_token_address(owner, mint)
+                info = await client.get_account_info(ata)
+                if info.value is None:
+                    await token.create_associated_token_account(
+                        owner, skip_confirmation=False
+                    )
+                resp = await token.mint_to(
+                    dest=ata,
+                    mint_authority=authority,
+                    amount=amount,
+                    opts=TxOpts(skip_confirmation=False, skip_preflight=False),
                 )
-            resp = await token.mint_to(
-                dest=ata,
-                mint_authority=authority,
-                amount=amount,
-                opts=TxOpts(skip_confirmation=False, skip_preflight=False),
-            )
-            sig = str(resp.value)
-            await client.confirm_transaction(resp.value, commitment=Confirmed)
-            return {
-                "signature": sig,
-                "solscan_url": solscan_url(sig),
-                "ata": str(ata),
-                "amount": str(amount),
-            }
-    except Exception:
-        # Devnet RPC is flaky under load — degrade gracefully so the agent
-        # pipeline never hard-fails. A healthy RPC produces a real on-chain tx.
-        return _mock_tx("mint", amount)
+                sig = str(resp.value)
+                await client.confirm_transaction(resp.value, commitment=Confirmed)
+                return {
+                    "signature": sig,
+                    "solscan_url": solscan_url(sig),
+                    "ata": str(ata),
+                    "amount": str(amount),
+                }
+        except Exception:
+            # Devnet RPC is flaky under load — retry, then degrade gracefully so
+            # the agent pipeline never hard-fails.
+            if attempt < _TX_RETRIES - 1:
+                await asyncio.sleep(2 * (attempt + 1))
+    return _mock_tx("mint", amount)
 
 
 async def burn_rsn(
@@ -182,7 +169,7 @@ async def burn_rsn(
     Two-signer transaction: the mint authority pays the fee (the custodial
     citizen wallet holds no SOL), the citizen keypair authorizes the burn.
     """
-    if not _solana_configured() or not await _rpc_healthy():
+    if not _solana_configured():
         return _mock_tx("burn", amount)
     settings = get_settings()
     authority = load_mint_authority()
@@ -200,22 +187,28 @@ async def burn_rsn(
             amount=amount,
         )
     )
-    try:
-        async with AsyncClient(settings.solana_rpc_url, timeout=20) as client:
-            blockhash = (await client.get_latest_blockhash()).value.blockhash
-            msg = Message.new_with_blockhash([burn_ix], authority.pubkey(), blockhash)
-            tx = Transaction([authority, owner_kp], msg, blockhash)
-            resp = await client.send_transaction(
-                tx, opts=TxOpts(skip_confirmation=False, skip_preflight=False)
-            )
-            sig = str(resp.value)
-            await client.confirm_transaction(resp.value, commitment=Confirmed)
-            return {
-                "signature": sig, "solscan_url": solscan_url(sig), "amount": str(amount),
-            }
-    except Exception:
-        # Flaky devnet RPC — degrade gracefully, never hard-fail the pipeline.
-        return _mock_tx("burn", amount)
+    for attempt in range(_TX_RETRIES):
+        try:
+            async with AsyncClient(settings.solana_rpc_url, timeout=25) as client:
+                blockhash = (await client.get_latest_blockhash()).value.blockhash
+                msg = Message.new_with_blockhash(
+                    [burn_ix], authority.pubkey(), blockhash
+                )
+                tx = Transaction([authority, owner_kp], msg, blockhash)
+                resp = await client.send_transaction(
+                    tx, opts=TxOpts(skip_confirmation=False, skip_preflight=False)
+                )
+                sig = str(resp.value)
+                await client.confirm_transaction(resp.value, commitment=Confirmed)
+                return {
+                    "signature": sig, "solscan_url": solscan_url(sig),
+                    "amount": str(amount),
+                }
+        except Exception:
+            # Flaky devnet RPC — retry, then degrade gracefully.
+            if attempt < _TX_RETRIES - 1:
+                await asyncio.sleep(2 * (attempt + 1))
+    return _mock_tx("burn", amount)
 
 
 async def get_rsn_balance(citizen_wallet_address: str) -> int:

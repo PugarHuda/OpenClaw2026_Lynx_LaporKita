@@ -255,7 +255,10 @@ export default function Dashboard() {
         </div>
 
         {/* Citizens / rewards */}
-        <section className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900/40">
+        <section
+          id="klaim"
+          className="mt-6 scroll-mt-20 rounded-xl border border-zinc-800 bg-zinc-900/40"
+        >
           <div className="border-b border-zinc-800 px-4 py-3 text-sm font-semibold">
             3 · Warga &amp; Rasain Points (RSN)
             <span className="ml-2 text-xs font-normal text-zinc-500">
@@ -276,9 +279,15 @@ export default function Dashboard() {
                   )}
                 </div>
                 {c.solana_wallet && (
-                  <div className="mt-1 font-mono text-[10px] text-zinc-600">
-                    {c.solana_wallet.slice(0, 24)}…
-                  </div>
+                  <a
+                    href={`https://solscan.io/account/${c.solana_wallet}?cluster=devnet`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Verifikasi kepemilikan token RSN on-chain (Solana devnet)"
+                    className="mt-1 block font-mono text-[10px] text-sky-500 transition hover:text-sky-400"
+                  >
+                    🔗 {c.solana_wallet.slice(0, 16)}… · cek on-chain
+                  </a>
                 )}
                 <button
                   onClick={() => redeem(c)}
