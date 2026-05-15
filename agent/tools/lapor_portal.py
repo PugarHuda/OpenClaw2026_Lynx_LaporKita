@@ -11,6 +11,7 @@ The mock persists to JSON so demo state survives restarts and supports the
 from __future__ import annotations
 
 import json
+import os
 import random
 import string
 import threading
@@ -21,17 +22,26 @@ from typing import Any
 _PORTAL_PATH = Path("lapor_portal_mock.json")
 _lock = threading.Lock()
 
+# Serverless (Vercel): keep portal state in-memory instead of a JSON file.
+_SERVERLESS = bool(os.getenv("VERCEL"))
+_mem_state: dict[str, Any] = {"tickets": {}}
+
 # Status lifecycle of a Lapor.go.id ticket.
 LAPOR_STATUSES = ["submitted", "verified_by_admin", "forwarded", "in_progress", "resolved"]
 
 
 def _load() -> dict[str, Any]:
+    if _SERVERLESS:
+        return _mem_state
     if _PORTAL_PATH.exists():
         return json.loads(_PORTAL_PATH.read_text(encoding="utf-8"))
     return {"tickets": {}}
 
 
 def _save(data: dict[str, Any]) -> None:
+    if _SERVERLESS:
+        _mem_state.update(data)
+        return
     with _lock:
         _PORTAL_PATH.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
 

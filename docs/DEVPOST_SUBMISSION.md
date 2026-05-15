@@ -44,13 +44,13 @@ Rasain adalah sistem multi-agent AI otonom yang menutup celah itu:
    sipilnya sendiri — sebuah lingkaran ekonomi yang tertutup.
 
 **How we built it**
-Orchestrator Python mengkoordinasi 7 agent spesialis lewat dua autonomous loop:
-event-driven (`process_report`) dan cron-driven (`run_tracker_cycle`, jalan tiap
-20 detik tanpa intervensi manusia). Setiap langkah menulis reasoning trace
+Orchestrator Python kustom mengkoordinasi 7 agent spesialis lewat dua autonomous
+loop: event-driven (`process_report`) dan cron-driven (`run_tracker_cycle`, jalan
+tiap 20 detik tanpa intervensi manusia). Setiap langkah menulis reasoning trace
 natural-language yang di-stream ke dashboard — sehingga juri melihat agent
-*berpikir*, bukan sekadar output. Dibangun dengan Claude Agent SDK, integrasi
-pembayaran lewat DOKU MCP Server, reward layer di Solana SPL Token, persistent
-memory via Mem9, backend FastAPI + APScheduler, dan dashboard Next.js.
+*berpikir*, bukan sekadar output. Reasoning & vision pakai Claude Haiku 4.5 lewat
+Sumopod AI gateway, integrasi pembayaran lewat DOKU MCP Server, reward layer di
+Solana SPL Token, backend FastAPI + APScheduler, dan dashboard Next.js.
 
 **Challenges**
 Menyatukan tiga sistem eksternal yang berbeda — vision AI, blockchain Solana,
@@ -71,18 +71,20 @@ credit RWA untuk dampak cleanup, dan DAO tata kelola per kota.
 ---
 
 ## Built With
-`claude-agent-sdk` · `anthropic-claude-sonnet-4.6` · `doku-mcp-server` · `mem9` ·
-`solana` · `spl-token` · `python` · `fastapi` · `apscheduler` · `nextjs` ·
+`claude-haiku-4.5` · `sumopod-ai` · `doku-mcp-server` · `solana` · `spl-token` ·
+`python` · `fastapi` · `apscheduler` · `openai-sdk` · `mcp` · `nextjs` ·
 `tailwindcss` · `typescript`
 
 ## AI Tools / Models Used
-- **Claude Sonnet 4.6** (Anthropic) — multi-modal vision untuk klasifikasi foto
-  masalah infrastruktur; reasoning untuk decision-making tiap agent.
-- **Claude Agent SDK** (Python) — kerangka orkestrasi multi-agent.
+- **Claude Haiku 4.5** — multi-modal vision untuk klasifikasi foto masalah
+  infrastruktur + reasoning kontekstual (severity/urgency).
+- **Sumopod AI Gateway** — gateway OpenAI-compatible yang menyediakan akses
+  Claude; classifier memanggilnya via OpenAI SDK.
 - **DOKU MCP Server** — Model Context Protocol server untuk pembayaran (QRIS,
   Virtual Account) — dipakai di reward Civic Credit.
-- **Mem9** — persistent memory layer untuk agent.
 - **Solana SPL Token** — reward layer on-chain (Rasain Points).
+- **Custom Python multi-agent orchestrator** — 7 agent spesialis + autonomous
+  loop (bukan framework jadi — dibangun penuh selama 12 jam).
 
 ## Links
 - **GitHub**: https://github.com/PugarHuda/OpenClaw2026_hayoloh_Rasain

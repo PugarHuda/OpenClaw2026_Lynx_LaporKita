@@ -286,7 +286,7 @@ export default function Dashboard() {
 
         <footer className="mt-8 border-t border-zinc-800 pt-4 text-xs text-zinc-600">
           Rasain · Tim hayoloh · OpenClaw Agenthon Indonesia 2026 ·
-          Claude Agent SDK + DOKU MCP + Mem9 + Solana
+          Claude Haiku 4.5 + DOKU MCP + Solana SPL
         </footer>
       </div>
 

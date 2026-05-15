@@ -102,18 +102,14 @@ Setiap agent membuat decision dinamis berdasarkan reasoning, bukan rule-based:
 
 | Layer | Tech |
 |---|---|
-| AI Orchestration | Claude Agent SDK Python |
-| LLM | Claude Sonnet 4.6 (text + vision) |
-| Payment | DOKU MCP Server (36 tools) |
-| Memory | Mem9 (persistent agent state) |
+| AI Orchestration | Custom Python multi-agent orchestrator |
+| LLM | Claude Haiku 4.5 (text + vision) via Sumopod AI gateway |
+| Payment | DOKU MCP Server |
 | Blockchain | Solana Devnet + SPL Token Program |
-| RPC | Helius free tier |
-| Backend | FastAPI + Uvicorn |
-| Database | SQLite + SQLAlchemy async |
-| Frontend | Next.js 14 + shadcn/ui + Tailwind |
-| Comms | Fonnte (WhatsApp Indonesia) |
-| Scheduler | APScheduler |
-| Hosting | Vercel (web) + Sumopod (agent) |
+| Backend | FastAPI + Uvicorn + APScheduler |
+| Store | JSON-backed repository (in-memory on serverless) |
+| Frontend | Next.js 16 + Tailwind |
+| Hosting | Vercel |
 
 ## Sponsor Tools Integration
 
@@ -123,9 +119,9 @@ Setiap agent membuat decision dinamis berdasarkan reasoning, bukan rule-based:
 - `get_transaction_by_invoice_number` - poll status
 - Disbursement via direct API call (reward redemption)
 
-**Mem9** (Memory):
-- Save: citizen profile, complaint history, classification feedback
-- Recall: similar past cases, instansi response patterns
+**Sumopod AI Gateway** (LLM):
+- OpenAI-compatible gateway → Claude Haiku 4.5 (vision + tool-calling)
+- Powers the Classifier Agent's contextual severity/urgency reasoning
 
 **Solana** (Web3 layer):
 - SPL Token "Rasain Points" (RSN) on devnet

@@ -6,6 +6,7 @@ autonomous tracker loop on an interval — no human trigger.
 """
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -22,22 +23,27 @@ from agent.tools.reward import redeem_civic_credit
 # Tracker cycle interval. Short for demo; in production this would be minutes.
 TRACKER_INTERVAL_SECONDS = 20
 
+# Serverless (Vercel) has no long-lived process for a scheduler — there the
+# autonomous loop is driven by the dashboard's manual trigger instead.
+_SERVERLESS = bool(os.getenv("VERCEL"))
 scheduler = AsyncIOScheduler()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Start the autonomous tracker loop on boot, stop it on shutdown."""
-    scheduler.add_job(
-        run_tracker_cycle,
-        "interval",
-        seconds=TRACKER_INTERVAL_SECONDS,
-        id="tracker_cycle",
-        max_instances=1,
-    )
-    scheduler.start()
+    if not _SERVERLESS:
+        scheduler.add_job(
+            run_tracker_cycle,
+            "interval",
+            seconds=TRACKER_INTERVAL_SECONDS,
+            id="tracker_cycle",
+            max_instances=1,
+        )
+        scheduler.start()
     yield
-    scheduler.shutdown(wait=False)
+    if not _SERVERLESS and scheduler.running:
+        scheduler.shutdown(wait=False)
 
 
 app = FastAPI(title="Rasain API", version="0.1.0", lifespan=lifespan)

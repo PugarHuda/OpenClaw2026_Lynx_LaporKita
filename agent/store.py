@@ -8,6 +8,7 @@ the same interface — agent code never touches storage details.
 from __future__ import annotations
 
 import json
+import os
 import threading
 from pathlib import Path
 from uuid import UUID
@@ -16,6 +17,11 @@ from agent.models import AgentLogEntry, Citizen, Report, Reward
 
 _DB_PATH = Path("rasain_store.json")
 _lock = threading.Lock()
+
+# On serverless (Vercel) the filesystem is read-only/ephemeral — run purely
+# in-memory. Fluid Compute reuses instances so state persists across a demo
+# session; a cold start simply begins fresh.
+_SERVERLESS = bool(os.getenv("VERCEL"))
 
 
 class Store:
@@ -31,7 +37,7 @@ class Store:
 
     # --- persistence ---
     def _load(self) -> None:
-        if not self.path.exists():
+        if _SERVERLESS or not self.path.exists():
             return
         raw = json.loads(self.path.read_text(encoding="utf-8"))
         self.citizens = {k: Citizen(**v) for k, v in raw.get("citizens", {}).items()}
@@ -40,6 +46,8 @@ class Store:
         self.logs = [AgentLogEntry(**v) for v in raw.get("logs", [])]
 
     def _save(self) -> None:
+        if _SERVERLESS:
+            return  # in-memory only on serverless
         with _lock:
             snapshot = {
                 "citizens": {k: json.loads(v.model_dump_json()) for k, v in self.citizens.items()},

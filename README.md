@@ -44,7 +44,7 @@ Citizen → Intake → Classifier (vision) → Geolocator → Submitter (Lapor.g
 | Agent | Tugas | Tools |
 |---|---|---|
 | **Intake** | Normalisasi laporan dari channel apapun | — |
-| **Classifier** | Klasifikasi foto via Claude vision | `anthropic` vision API |
+| **Classifier** | Klasifikasi foto via Claude vision | Sumopod AI (Claude Haiku 4.5) |
 | **Geolocator** | Routing ke instansi + SLA | reference data |
 | **Submitter** | Submit ke Lapor.go.id | portal API |
 | **Tracker** | Poll status + eskalasi (autonomous cron) | portal API |
@@ -128,14 +128,15 @@ Untuk menjalankan **mode live penuh**, isi `.env` (lihat `.env.example`):
 
 ## Tech Stack & AI Tools
 
-- **AI Orchestration**: [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python)
-- **LLM / Vision**: Anthropic **Claude Sonnet 4.6** (klasifikasi multi-modal)
+- **AI Orchestration**: custom Python multi-agent orchestrator — 7 specialist
+  agents + event-driven & cron-driven autonomous loops (`agent/orchestrator.py`)
+- **LLM / Vision**: **Claude Haiku 4.5** via the **Sumopod AI gateway**
+  (OpenAI-compatible) — multi-modal classification + reasoning
 - **Payment**: **DOKU MCP Server** (QRIS, Virtual Account) — *Best Payment Track*
-- **Memory**: **Mem9** (persistent agent memory, Claude Code plugin)
 - **Web3**: **Solana** devnet + SPL Token Program (Rasain Points)
 - **Backend**: FastAPI + APScheduler (autonomous loop)
 - **Frontend**: Next.js 16 + Tailwind
-- **Hosting**: Vercel (web) + Sumopod (agent)
+- **Hosting**: Vercel
 
 ## Project Structure
 
