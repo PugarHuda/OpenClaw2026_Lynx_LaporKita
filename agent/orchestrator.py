@@ -35,6 +35,7 @@ from agent.tools.lapor_portal import (
     is_ticket_stuck,
     submit_to_lapor,
 )
+from agent.tools.memory import recall, remember
 from agent.tools.reward import earn_reward_for_report
 
 CONFIDENCE_THRESHOLD = 0.6
@@ -76,6 +77,18 @@ async def process_report(intake_payload: dict) -> dict:
         f"{intake_payload['channel']} di {kota}.",
         citizen_id=citizen_id,
     )
+
+    # --- Recall this citizen's history from Mem9 (cross-session memory) ---
+    past = await asyncio.to_thread(
+        recall, f"laporan warga {intake_payload['citizen_name']} {kota}", 3
+    )
+    if past:
+        _log(
+            "memory", "recall_history",
+            f"Mem9: {len(past)} memori warga ini ditemukan. Konteks terbaru: "
+            f"\"{past[0][:90]}\"",
+            citizen_id=citizen_id,
+        )
 
     # --- Step 1: Classify (Claude vision) ---
     classification = await asyncio.to_thread(
@@ -229,6 +242,14 @@ async def _tracker_cycle_body() -> dict:
                 f"Tiket {report.lapor_ticket_id} dinyatakan resolved oleh "
                 f"{report.instansi_target}. Laporan terverifikasi.",
                 report_id=report.id, citizen_id=report.citizen_id,
+            )
+            # Persist this verified impact to Mem9 — recalled on future reports.
+            await asyncio.to_thread(
+                remember,
+                str(report.citizen_id),
+                f"Warga melaporkan {report.category} ({report.severity.value}) "
+                f"di {report.kota}; diteruskan ke {report.instansi_target} dan "
+                f"terverifikasi selesai pada {report.verified_at:%Y-%m-%d}.",
             )
             reward = await earn_reward_for_report(report)
             actions["verified"] += 1

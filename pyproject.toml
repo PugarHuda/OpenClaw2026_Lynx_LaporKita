@@ -19,32 +19,21 @@ dependencies = [
     "fastapi>=0.110",
     "uvicorn[standard]>=0.27",
     "python-multipart>=0.0.6",
-    "websockets>=12.0",
 
     # Data & validation
     "pydantic>=2.6",
     "pydantic-settings>=2.2",
     "python-dotenv>=1.0",
 
-    # HTTP
+    # HTTP — Mem9 memory client
     "httpx>=0.27",
 
     # Scheduling (autonomous loop)
     "apscheduler>=3.10",
 
-    # Vision / image
-    "pillow>=10.0",
-
-    # Solana / Web3 reward layer
+    # Solana / Web3 reward layer (SPL token mint/burn)
     "solana>=0.34",
     "solders>=0.21",
-    "anchorpy>=0.20",
-
-    # Persistence
-    "sqlalchemy>=2.0",
-    "aiosqlite>=0.20",
-
-    # Notif — Fonnte WhatsApp API dipanggil via httpx (plain REST, no SDK)
 ]
 
 [project.optional-dependencies]

@@ -11,6 +11,7 @@ const AGENT_COLORS: Record<string, string> = {
   tracker: "text-orange-400",
   verifier: "text-teal-400",
   reward: "text-pink-400",
+  memory: "text-cyan-400",
   orchestrator: "text-zinc-300",
 };
 
