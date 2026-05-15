@@ -38,6 +38,16 @@ from agent.tools.lapor_portal import (
 )
 from agent.tools.memory import recall, remember
 from agent.tools.reward import earn_reward_for_report
+from agent.tools.telegram import (
+    download_photo,
+    extract_kota,
+    get_updates,
+    send_message,
+    telegram_configured,
+)
+
+# Telegram long-poll offset — advances past processed updates.
+_tg_offset: dict[str, int] = {"value": 0}
 
 CONFIDENCE_THRESHOLD = 0.6
 
@@ -228,6 +238,73 @@ async def process_report(intake_payload: dict) -> dict:
     }
 
 
+async def process_telegram_updates() -> dict:
+    """Poll Telegram for citizen reports — photo + caption — and process them.
+
+    Cron-driven entry point: citizens report in their own words via the bot,
+    the agent runs the full pipeline, and replies on Telegram.
+    """
+    if not telegram_configured():
+        return {"processed": 0}
+    updates = await asyncio.to_thread(get_updates, _tg_offset["value"], 0)
+    processed = 0
+    for upd in updates:
+        _tg_offset["value"] = upd["update_id"] + 1
+        msg = upd.get("message", {})
+        chat_id = msg.get("chat", {}).get("id")
+        if not chat_id:
+            continue
+        photos = msg.get("photo")
+        if not photos:
+            await asyncio.to_thread(
+                send_message, chat_id,
+                "Halo! Kirim <b>foto</b> masalah infrastruktur, dan tulis "
+                "deskripsinya di caption foto. Contoh: \"jalan rusak parah di "
+                "tikungan Bekasi\".",
+            )
+            continue
+
+        caption = msg.get("caption") or "Laporan masalah infrastruktur publik"
+        name = msg.get("from", {}).get("first_name", "Warga")
+        image_path = await asyncio.to_thread(download_photo, photos[-1]["file_id"])
+        if not image_path:
+            continue
+
+        await asyncio.to_thread(
+            send_message, chat_id, "📥 Laporan diterima — AI agent menganalisis fotomu…"
+        )
+        payload = intake_report(
+            wa_number=f"tg-{chat_id}", citizen_name=name, image_path=image_path,
+            description=caption, kota=extract_kota(caption),
+            channel="telegram", telegram_chat_id=str(chat_id),
+        )
+        result = await process_report(payload)
+        processed += 1
+
+        if result["status"] == "submitted":
+            await asyncio.to_thread(
+                send_message, chat_id,
+                f"✅ <b>Laporanmu sudah diteruskan!</b>\n\n"
+                f"Kategori  : {result['category']}\n"
+                f"Tingkat   : {result['severity']} (urgensi {result['urgency']}/5)\n"
+                f"Instansi  : {result['instansi_target']}\n"
+                f"No. Tiket : <code>{result['ticket_id']}</code>\n\n"
+                f"Agent telah mengirim email resmi ke instansi terkait. "
+                f"Kamu akan dapat notifikasi di sini saat laporan terverifikasi.",
+            )
+        elif result["status"] == "needs_better_photo":
+            await asyncio.to_thread(
+                send_message, chat_id,
+                "📷 Fotonya kurang jelas — mohon kirim ulang yang lebih terang ya.",
+            )
+        else:
+            await asyncio.to_thread(
+                send_message, chat_id,
+                "Hmm, foto ini sepertinya bukan masalah infrastruktur publik.",
+            )
+    return {"processed": processed}
+
+
 async def run_tracker_cycle() -> dict:
     """Autonomous loop: poll open tickets, escalate stuck, verify resolved.
 
@@ -301,6 +378,25 @@ async def _tracker_cycle_body() -> dict:
                     f"Warga dapat {reward.points_earned} RSN. Threshold tercapai "
                     f"→ di-mint on-chain: {reward.spl_mint_tx[:16]}...",
                     tool_calls=[{"tool": "mint_rsn", "tx": reward.spl_mint_tx}],
+                    report_id=report.id, citizen_id=report.citizen_id,
+                )
+
+            # --- Notify the citizen on Telegram (round-trip closed) ---
+            citizen = store.get_citizen(report.citizen_id)
+            if citizen and citizen.telegram_chat_id:
+                await asyncio.to_thread(
+                    send_message, citizen.telegram_chat_id,
+                    f"🎉 <b>Laporanmu sudah selesai ditangani!</b>\n\n"
+                    f"Tiket <code>{report.lapor_ticket_id}</code> ({report.category}) "
+                    f"di {report.kota} telah diverifikasi selesai.\n\n"
+                    f"Kamu mendapat <b>{reward.points_earned} Rasain Points (RSN)</b> "
+                    f"sebagai apresiasi. Tukar jadi Civic Credit di dashboard untuk "
+                    f"potongan retribusi. Terima kasih sudah menjaga kotamu! 🙏",
+                )
+                _log(
+                    "verifier", "notify_citizen",
+                    f"Notifikasi Telegram dikirim ke pelapor — laporan selesai + "
+                    f"{reward.points_earned} RSN.",
                     report_id=report.id, citizen_id=report.citizen_id,
                 )
             continue

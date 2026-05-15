@@ -25,6 +25,7 @@ def intake_report(
     bank_account: str | None = None,
     bank_name: str | None = None,
     channel: str = "web",
+    telegram_chat_id: str | None = None,
 ) -> dict[str, Any]:
     """Normalize an incoming citizen report.
 
@@ -39,13 +40,19 @@ def intake_report(
             name=citizen_name,
             bank_account=bank_account,
             bank_name=bank_name,
+            telegram_chat_id=telegram_chat_id,
         )
         store.upsert_citizen(citizen)
     else:
-        # Keep bank details fresh if newly provided.
+        # Keep contact details fresh if newly provided.
+        changed = False
         if bank_account and not citizen.bank_account:
-            citizen.bank_account = bank_account
-            citizen.bank_name = bank_name
+            citizen.bank_account, citizen.bank_name = bank_account, bank_name
+            changed = True
+        if telegram_chat_id and citizen.telegram_chat_id != telegram_chat_id:
+            citizen.telegram_chat_id = telegram_chat_id
+            changed = True
+        if changed:
             store.upsert_citizen(citizen)
 
     return {

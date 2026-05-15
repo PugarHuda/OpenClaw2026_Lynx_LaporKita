@@ -16,13 +16,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from agent.config import get_settings
-from agent.orchestrator import process_report, run_tracker_cycle
+from agent.orchestrator import (
+    process_report,
+    process_telegram_updates,
+    run_tracker_cycle,
+)
 from agent.store import get_store
 from agent.tools.intake import intake_report
 from agent.tools.reward import redeem_civic_credit
 
 # Tracker cycle interval. Short for demo; in production this would be minutes.
 TRACKER_INTERVAL_SECONDS = 20
+# Telegram poll interval — citizens report via the bot.
+TELEGRAM_POLL_SECONDS = 6
 
 # Serverless (Vercel) has no long-lived process for a scheduler — there the
 # autonomous loop is driven by the dashboard's manual trigger instead.
@@ -39,6 +45,13 @@ async def lifespan(app: FastAPI):
             "interval",
             seconds=TRACKER_INTERVAL_SECONDS,
             id="tracker_cycle",
+            max_instances=1,
+        )
+        scheduler.add_job(
+            process_telegram_updates,
+            "interval",
+            seconds=TELEGRAM_POLL_SECONDS,
+            id="telegram_poll",
             max_instances=1,
         )
         scheduler.start()
