@@ -47,7 +47,8 @@ class Citizen(BaseModel):
     name: str
     bank_account: str | None = None       # untuk Doku Disbursement
     bank_name: str | None = None          # BCA, Mandiri, BRI, BNI
-    solana_wallet: str | None = None      # custodial address (auto-gen)
+    solana_wallet: str | None = None         # custodial address (auto-gen)
+    solana_wallet_secret: str | None = None  # custodial keypair (hackathon V1; encrypt in prod)
     rsn_offchain: int = 0         # accumulated pre-mint
     rsn_onchain: int = 0          # SPL token balance (cached)
     created_at: datetime = Field(default_factory=datetime.utcnow)
