@@ -55,10 +55,17 @@ class Citizen(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class ReportType(str, Enum):
+    """Jenis laporan — menentukan tujuan routing & bobot reward."""
+    CIVIC = "civic"                  # masalah infrastruktur publik → pemerintah
+    PRODUCT_DEFECT = "product_defect"  # barang cacat / bug → perusahaan (reward 2x)
+
+
 class Report(BaseModel):
-    """Laporan masalah infrastruktur dari citizen."""
+    """Laporan masalah dari citizen — infrastruktur publik atau produk cacat."""
     id: UUID = Field(default_factory=uuid4)
     citizen_id: UUID
+    report_type: ReportType = ReportType.CIVIC
     category: str                         # e.g., "infrastruktur_jalan"
     subcategory: str | None = None
     severity: Severity = Severity.MEDIUM

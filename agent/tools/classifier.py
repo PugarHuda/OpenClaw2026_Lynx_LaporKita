@@ -44,6 +44,13 @@ def _image_to_data_uri(image_path: str) -> str:
 _SCHEMA = {
     "type": "object",
     "properties": {
+        "report_type": {
+            "type": "string",
+            "enum": ["civic", "product_defect"],
+            "description": "civic = masalah infrastruktur publik (jalan, lampu, "
+            "sampah). product_defect = barang/produk cacat atau bug yang dilaporkan "
+            "ke perusahaan.",
+        },
         "category": {"type": "string", "description": "Kategori utama (kunci taxonomy)"},
         "subcategory": {"type": "string", "description": "Subkategori spesifik"},
         "severity": {
@@ -70,7 +77,7 @@ _SCHEMA = {
         },
     },
     "required": [
-        "category", "severity", "urgency", "is_valid_report",
+        "report_type", "category", "severity", "urgency", "is_valid_report",
         "confidence", "reasoning", "suggested_instansi_type",
     ],
 }
@@ -115,10 +122,15 @@ SEVERITY (pakai KONTEKS VISUAL, bukan cuma jenis objek):
 
 URGENCY 1-5: 1=info, 2=30 hari, 3=7 hari, 4=48 jam, 5=darurat <24 jam
 
+JENIS LAPORAN (report_type):
+- civic: masalah infrastruktur publik (jalan, lampu, sampah, drainase) → pemerintah
+- product_defect: barang/produk cacat, kemasan rusak, makanan basi, atau bug \
+produk yang dilaporkan ke perusahaan/produsen
+
 PRINSIP:
 1. Severity ditentukan KONTEKS. Lubang di gang sepi = medium; lubang sama di \
 tikungan ramai = high (risiko kecelakaan).
-2. Foto BUKAN masalah infrastruktur publik -> is_valid_report=false.
+2. Foto BUKAN masalah infrastruktur publik DAN bukan produk cacat -> is_valid_report=false.
 3. confidence <0.6 jika foto blur/gelap/ambigu.
 4. reasoning sebut: (a) apa yang terlihat, (b) alasan severity, (c) alasan urgency.
 
@@ -140,8 +152,14 @@ def _mock_classification(description: str | None) -> dict[str, Any]:
         if any(k in text for k in keywords):
             category, subcategory, instansi = cat, sub, ins
             break
+    # Product-defect detection keywords.
+    is_defect = any(
+        k in text for k in ("cacat", "rusak produk", "barang", "kemasan",
+                             "basi", "kadaluarsa", "bug", "garansi", "produk")
+    )
     severe = "parah" in text or "bahaya" in text
     return {
+        "report_type": "product_defect" if is_defect else "civic",
         "category": category, "subcategory": subcategory,
         "severity": "high" if severe else "medium",
         "urgency": 4 if severe else 3,

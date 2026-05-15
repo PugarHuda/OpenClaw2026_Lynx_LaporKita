@@ -17,7 +17,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from agent.config import get_settings
-from agent.models import Citizen, Report, Reward, RewardStatus
+from agent.models import Citizen, Report, ReportType, Reward, RewardStatus
 from agent.store import get_store
 from agent.tools.doku import compute_civic_credit, create_retribusi_qris
 from agent.tools.solana_token import mint_rsn, new_citizen_wallet
@@ -45,7 +45,9 @@ async def earn_reward_for_report(report: Report) -> Reward:
     if citizen is None:
         raise ValueError(f"Citizen {report.citizen_id} not found")
 
-    points = settings.earn_rsn_per_verified_report
+    # Product-defect (bug bounty) reports earn a 2x reward when verified.
+    multiplier = 2 if report.report_type == ReportType.PRODUCT_DEFECT else 1
+    points = settings.earn_rsn_per_verified_report * multiplier
     reward = Reward(
         citizen_id=citizen.id,
         report_id=report.id,

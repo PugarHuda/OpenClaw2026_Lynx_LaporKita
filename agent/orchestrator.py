@@ -25,7 +25,7 @@ from uuid import UUID
 _tracker_lock = asyncio.Lock()
 
 from agent.config import get_settings
-from agent.models import AgentLogEntry, Report, ReportStatus, Severity
+from agent.models import AgentLogEntry, Report, ReportStatus, ReportType, Severity
 from agent.store import get_store
 from agent.tools.classifier import classify_infrastructure_issue
 from agent.tools.email_gov import check_reply, email_configured, send_report_email
@@ -156,6 +156,7 @@ async def process_report(intake_payload: dict) -> dict:
     # --- Persist the Report ---
     report = Report(
         citizen_id=citizen_id,
+        report_type=ReportType(classification.get("report_type", "civic")),
         category=classification["category"],
         subcategory=classification.get("subcategory"),
         severity=Severity(classification["severity"]),
