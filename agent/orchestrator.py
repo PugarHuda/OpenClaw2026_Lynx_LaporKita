@@ -37,7 +37,7 @@ from agent.tools.lapor_portal import (
     submit_to_lapor,
 )
 from agent.tools.memory import recall, remember
-from agent.tools.reward import earn_reward_for_report
+from agent.tools.reward import earn_reward_for_report, redeem_civic_credit
 from agent.tools.intake import intake_report
 from agent.tools.telegram import (
     answer_callback,
@@ -60,11 +60,10 @@ def _dashboard_url() -> str:
 
 def _menu_buttons() -> list[list[dict[str, str]]]:
     """The bot's main clickable menu — tap to act, no typing required."""
-    dash = _dashboard_url()
     return [
         [{"text": "📸 Cara Lapor", "callback_data": "cara_lapor"}],
-        [{"text": "📊 Buka Dashboard", "url": dash}],
-        [{"text": "🪙 Klaim Reward", "url": f"{dash}#klaim"}],
+        [{"text": "🪙 Klaim Reward", "callback_data": "klaim"}],
+        [{"text": "📊 Buka Dashboard", "url": _dashboard_url()}],
     ]
 
 
@@ -275,10 +274,65 @@ _HOW_TO = (
 )
 
 
+async def _claim_reward(chat_id: int) -> None:
+    """Redeem the citizen's RSN as Civic Credit — claimed from inside the bot.
+
+    Ownership is authenticated by Telegram itself: the chat_id identifies the
+    citizen, so only whoever controls that Telegram account can claim that
+    citizen's reward. No email, no password — the messaging channel IS the
+    login, and the custodial wallet is bound to it.
+    """
+    store = get_store()
+    citizen = store.get_citizen_by_wa(f"tg-{chat_id}")
+    if citizen is None:
+        await asyncio.to_thread(
+            send_message, chat_id,
+            "Kamu belum pernah lapor lewat bot ini — jadi belum ada reward. "
+            "Kirim foto masalah infrastruktur untuk mulai 📸",
+        )
+        return
+    if citizen.rsn_onchain <= 0:
+        await asyncio.to_thread(
+            send_message, chat_id,
+            "Saldo RSN kamu masih 0 🪙\n\nReward muncul otomatis begitu "
+            "laporanmu diverifikasi selesai oleh instansi.",
+        )
+        return
+
+    await asyncio.to_thread(
+        send_message, chat_id, "🔄 Memproses klaim — RSN di-burn on-chain…"
+    )
+    try:
+        result = await redeem_civic_credit(str(citizen.id), "sampah", 25000)
+    except Exception:
+        await asyncio.to_thread(
+            send_message, chat_id,
+            "Maaf, klaim gagal diproses. Coba lagi beberapa saat lagi ya.",
+        )
+        return
+
+    buttons = None
+    if result.get("burn_solscan_url"):
+        buttons = [[{"text": "🔗 Lihat bukti burn (Solscan)",
+                     "url": result["burn_solscan_url"]}]]
+    await asyncio.to_thread(
+        send_message, chat_id,
+        f"✅ <b>Reward berhasil diklaim!</b>\n\n"
+        f"RSN dipakai : {result['rsn_used']} 🪙\n"
+        f"Potongan    : Rp {result['idr_offset']:,} (retribusi sampah)\n"
+        f"Sisa bayar  : Rp {result['cash_due_idr']:,} via QRIS DOKU\n\n"
+        f"RSN-mu di-burn on-chain sebagai bukti penukaran yang bisa diverifikasi "
+        f"siapa pun. Terima kasih sudah aktif menjaga kotamu! 🙏",
+        buttons,
+    )
+
+
 async def _handle_telegram_callback(chat_id: int, data: str) -> None:
     """Respond to a tapped inline-keyboard button."""
     if data == "cara_lapor":
         await asyncio.to_thread(send_message, chat_id, _HOW_TO)
+    elif data == "klaim":
+        await _claim_reward(chat_id)
     else:
         await asyncio.to_thread(send_message, chat_id, _WELCOME, _menu_buttons())
 
@@ -447,8 +501,7 @@ async def _tracker_cycle_body() -> dict:
                     f"sebagai apresiasi 🪙\n\n"
                     f"Tukar RSN jadi Civic Credit untuk potongan retribusi. "
                     f"Terima kasih sudah menjaga kotamu! 🙏",
-                    [[{"text": "🪙 Klaim Reward Sekarang",
-                       "url": f"{_dashboard_url()}#klaim"}]],
+                    [[{"text": "🪙 Klaim Reward Sekarang", "callback_data": "klaim"}]],
                 )
                 _log(
                     "verifier", "notify_citizen",
