@@ -1,0 +1,127 @@
+{
+  "_meta": {
+    "description": "Reference mapping kategori masalah infrastruktur publik Indonesia ke instansi pemerintah yang berwenang. Public data dari berbagai portal pemerintah Indonesia.",
+    "source": "Lapor.go.id, Kemenpan-RB, BPS Indonesia, kementerian terkait",
+    "version": "1.0",
+    "license": "Public Domain - government public information"
+  },
+  "kategori_masalah": {
+    "infrastruktur_jalan": {
+      "nama": "Infrastruktur Jalan & Jembatan",
+      "subkategori": ["jalan_berlubang", "jalan_rusak_parah", "jembatan_rusak", "trotoar_rusak", "drainase_jalan"],
+      "instansi_pusat": "Kementerian PUPR (Pekerjaan Umum dan Perumahan Rakyat)",
+      "instansi_provinsi": "Dinas PUPR Provinsi",
+      "instansi_kabkota": "Dinas PUPR / Dinas Bina Marga Kabupaten/Kota",
+      "severity_indicators": {
+        "low": "lubang kecil <10cm, tidak menggangu lalu lintas",
+        "medium": "lubang sedang 10-30cm, kemacetan minor",
+        "high": "kerusakan parah >30cm, kemacetan signifikan, risiko kecelakaan",
+        "critical": "tidak dapat dilalui, risiko fatal, banjir longsor"
+      }
+    },
+    "lampu_jalan": {
+      "nama": "Penerangan Jalan Umum (PJU)",
+      "subkategori": ["lampu_mati", "lampu_redup", "lampu_rusak_fisik", "tiang_rusak"],
+      "instansi_pusat": "-",
+      "instansi_provinsi": "Dinas Perhubungan Provinsi (jika jalan provinsi)",
+      "instansi_kabkota": "Dinas Perhubungan Kabupaten/Kota + PLN",
+      "severity_indicators": {
+        "low": "1-2 lampu mati di area cukup terang",
+        "medium": "beberapa lampu mati di jalan utama",
+        "high": "ruas jalan gelap total >100m",
+        "critical": "area rawan kriminal/kecelakaan tanpa penerangan sama sekali"
+      }
+    },
+    "sampah_kebersihan": {
+      "nama": "Sampah & Kebersihan Lingkungan",
+      "subkategori": ["sampah_menumpuk", "tps_overflow", "sungai_tercemar", "drainase_sampah", "pembakaran_liar"],
+      "instansi_pusat": "Kementerian Lingkungan Hidup dan Kehutanan (KLHK)",
+      "instansi_provinsi": "Dinas Lingkungan Hidup Provinsi",
+      "instansi_kabkota": "Dinas Lingkungan Hidup (DLH) Kabupaten/Kota",
+      "severity_indicators": {
+        "low": "sampah serakan kecil",
+        "medium": "tumpukan <1m, bau ringan",
+        "high": "tumpukan besar, bau menyengat, gangguan kesehatan",
+        "critical": "pencemaran sungai/sumber air, wabah, kebakaran sampah"
+      }
+    },
+    "drainase_banjir": {
+      "nama": "Drainase & Banjir",
+      "subkategori": ["drainase_mampet", "got_meluap", "saluran_air_rusak", "banjir_lokal", "rob"],
+      "instansi_pusat": "Kementerian PUPR (Ditjen Cipta Karya)",
+      "instansi_provinsi": "Dinas PUPR Provinsi + Dinas LH",
+      "instansi_kabkota": "Dinas PUPR Kabupaten/Kota + BPBD",
+      "severity_indicators": {
+        "low": "genangan kecil <10cm setelah hujan",
+        "medium": "drainase mampet, genangan 10-30cm",
+        "high": "banjir 30cm-1m, akses terganggu",
+        "critical": "banjir >1m, evakuasi diperlukan, korban"
+      }
+    },
+    "listrik_pln": {
+      "nama": "Listrik & PLN",
+      "subkategori": ["mati_lampu", "tiang_miring", "kabel_terjuntai", "trafo_meledak", "voltase_rendah"],
+      "instansi_pusat": "Kementerian ESDM",
+      "instansi_provinsi": "PLN Unit Induk Wilayah",
+      "instansi_kabkota": "PLN ULP/Unit Layanan",
+      "severity_indicators": {
+        "low": "voltase fluktuasi, beberapa rumah",
+        "medium": "mati lampu 1 area <6 jam",
+        "high": "mati lampu >12 jam atau infrastruktur rusak",
+        "critical": "kabel terjuntai, risiko kebakaran/setrum"
+      }
+    },
+    "air_pdam": {
+      "nama": "Air Bersih & PDAM",
+      "subkategori": ["air_mati", "pipa_bocor", "kualitas_air", "tekanan_rendah"],
+      "instansi_kabkota": "PDAM Kabupaten/Kota",
+      "instansi_pusat": "Kementerian PUPR (Ditjen Cipta Karya)",
+      "severity_indicators": {
+        "low": "tekanan rendah",
+        "medium": "air mati 1-2 hari",
+        "high": "air mati >3 hari atau kualitas buruk",
+        "critical": "wabah penyakit terkait air"
+      }
+    },
+    "pohon_taman": {
+      "nama": "Pohon & Ruang Terbuka Hijau",
+      "subkategori": ["pohon_tumbang", "pohon_miring", "ranting_lapuk", "taman_rusak"],
+      "instansi_kabkota": "Dinas Lingkungan Hidup dan Kehutanan (DLHK) atau Dinas Pertamanan",
+      "severity_indicators": {
+        "low": "ranting jatuh kecil",
+        "medium": "pohon miring berpotensi tumbang",
+        "high": "pohon tumbang blokir jalan",
+        "critical": "pohon tumbang menimpa bangunan/orang"
+      }
+    },
+    "transportasi_umum": {
+      "nama": "Transportasi Umum & Lalu Lintas",
+      "subkategori": ["rambu_rusak", "marka_pudar", "halte_rusak", "trotoar_pkl", "macet_kronis"],
+      "instansi_kabkota": "Dinas Perhubungan",
+      "instansi_pusat": "Kementerian Perhubungan"
+    },
+    "bencana_alam": {
+      "nama": "Bencana Alam & Mitigasi",
+      "subkategori": ["longsor", "gempa_dampak", "kebakaran_hutan", "abrasi", "puting_beliung"],
+      "instansi_pusat": "BNPB (Badan Nasional Penanggulangan Bencana)",
+      "instansi_provinsi": "BPBD Provinsi",
+      "instansi_kabkota": "BPBD Kabupaten/Kota"
+    }
+  },
+  "urgency_levels": {
+    "1": "informasi/saran (tidak butuh tindakan segera)",
+    "2": "perlu tindakan dalam 30 hari",
+    "3": "perlu tindakan dalam 7 hari",
+    "4": "perlu tindakan dalam 48 jam",
+    "5": "darurat - butuh tindakan segera <24 jam"
+  },
+  "instansi_response_sla_typical_days": {
+    "Dinas PUPR Kabupaten/Kota": 14,
+    "DLH Kabupaten/Kota": 7,
+    "PLN ULP": 3,
+    "PDAM": 5,
+    "DLHK": 7,
+    "Dinas Perhubungan": 14,
+    "BPBD": 1
+  }
+}

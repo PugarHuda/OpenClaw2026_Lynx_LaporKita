@@ -1,0 +1,1 @@
+"""LaporKita FastAPI backend."""

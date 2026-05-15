@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "description": "10 kota besar Indonesia dengan koordinat GPS + provinsi + populasi. Reference data publik untuk geolocation routing.",
+    "source": "BPS Indonesia, Wikipedia Indonesian cities",
+    "version": "1.0"
+  },
+  "kota": [
+    {"nama": "Jakarta", "provinsi": "DKI Jakarta", "populasi": 10770000, "lat": -6.2088, "lon": 106.8456, "zona_regional": "Jabodetabek"},
+    {"nama": "Surabaya", "provinsi": "Jawa Timur", "populasi": 2874000, "lat": -7.2575, "lon": 112.7521, "zona_regional": "Gerbangkertosusila"},
+    {"nama": "Bandung", "provinsi": "Jawa Barat", "populasi": 2444000, "lat": -6.9175, "lon": 107.6191, "zona_regional": "Bandung Raya"},
+    {"nama": "Medan", "provinsi": "Sumatera Utara", "populasi": 2436000, "lat": 3.5952, "lon": 98.6722, "zona_regional": "Mebidangro"},
+    {"nama": "Semarang", "provinsi": "Jawa Tengah", "populasi": 1654000, "lat": -6.9667, "lon": 110.4167, "zona_regional": "Kedungsapur"},
+    {"nama": "Makassar", "provinsi": "Sulawesi Selatan", "populasi": 1424000, "lat": -5.1477, "lon": 119.4327, "zona_regional": "Mamminasata"},
+    {"nama": "Palembang", "provinsi": "Sumatera Selatan", "populasi": 1668000, "lat": -2.9909, "lon": 104.7565, "zona_regional": "Patungraya Agung"},
+    {"nama": "Depok", "provinsi": "Jawa Barat", "populasi": 2128000, "lat": -6.4025, "lon": 106.7942, "zona_regional": "Jabodetabek"},
+    {"nama": "Bekasi", "provinsi": "Jawa Barat", "populasi": 3083000, "lat": -6.2349, "lon": 107.0011, "zona_regional": "Jabodetabek"},
+    {"nama": "Tangerang", "provinsi": "Banten", "populasi": 1798000, "lat": -6.1783, "lon": 106.6319, "zona_regional": "Jabodetabek"}
+  ],
+  "kelurahan_jakarta_selatan_sample": [
+    "Kebayoran Baru", "Kebayoran Lama", "Pondok Indah", "Cilandak", "Pasar Minggu",
+    "Pancoran", "Tebet", "Setiabudi", "Mampang Prapatan", "Pesanggrahan"
+  ]
+}
