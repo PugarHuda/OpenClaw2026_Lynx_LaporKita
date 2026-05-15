@@ -1,4 +1,4 @@
-"""JSON-backed repository for LaporKita entities.
+"""JSON-backed repository for Rasain entities.
 
 Hackathon-pragmatic persistence: in-memory dicts + JSON snapshot on every write.
 Data volume is tiny (~tens of records), so this is reliable, restart-survivable,
@@ -14,7 +14,7 @@ from uuid import UUID
 
 from agent.models import AgentLogEntry, Citizen, Report, Reward
 
-_DB_PATH = Path("laporkita_store.json")
+_DB_PATH = Path("rasain_store.json")
 _lock = threading.Lock()
 
 

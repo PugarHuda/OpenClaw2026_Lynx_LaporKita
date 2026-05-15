@@ -1,6 +1,6 @@
 """Classifier Agent tool — Claude vision multi-modal classification of infrastructure issues.
 
-This is the "eyes" of LaporKita. Given a citizen's photo (and optional text/GPS),
+This is the "eyes" of Rasain. Given a citizen's photo (and optional text/GPS),
 it returns a structured classification that downstream agents route on.
 
 Design: classification taxonomy is injected from data/seed/, not hardcoded in the
@@ -102,7 +102,7 @@ def _build_system_prompt(taxonomy: dict[str, Any]) -> str:
         cat_lines.append(f"- {key} ({val['nama']}): subkategori=[{subs}] → {instansi}")
     taxonomy_block = "\n".join(cat_lines)
 
-    return f"""Kamu adalah Classifier Agent untuk LaporKita — sistem pelaporan masalah \
+    return f"""Kamu adalah Classifier Agent untuk Rasain — sistem pelaporan masalah \
 infrastruktur publik Indonesia.
 
 Tugasmu: lihat foto yang dikirim warga, klasifikasikan masalahnya secara akurat.

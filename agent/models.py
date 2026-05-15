@@ -1,4 +1,4 @@
-"""Pydantic data models for LaporKita core entities.
+"""Pydantic data models for Rasain core entities.
 
 These models define the contract between agents and persist throughout the flow:
 Citizen → Report → Reward, tracked end-to-end.
@@ -48,8 +48,8 @@ class Citizen(BaseModel):
     bank_account: str | None = None       # untuk Doku Disbursement
     bank_name: str | None = None          # BCA, Mandiri, BRI, BNI
     solana_wallet: str | None = None      # custodial address (auto-gen)
-    laporpoints_offchain: int = 0         # accumulated pre-mint
-    laporpoints_onchain: int = 0          # SPL token balance (cached)
+    rsn_offchain: int = 0         # accumulated pre-mint
+    rsn_onchain: int = 0          # SPL token balance (cached)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -88,7 +88,7 @@ class Reward(BaseModel):
     redeemed_at: datetime | None = None
     burn_tx: str | None = None
     doku_disbursement_id: str | None = None
-    idr_amount: int | None = None         # 1 LPT = Rp 1000
+    idr_amount: int | None = None         # 1 RSN = Rp 1000
 
 
 class AgentLogEntry(BaseModel):

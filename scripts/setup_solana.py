@@ -1,10 +1,10 @@
-"""One-time Solana setup: create the LaporPoints (LPT) SPL token mint.
+"""One-time Solana setup: create the Rasain Points (RSN) SPL token mint.
 
 Run once after funding the mint-authority wallet with devnet SOL:
 
     python scripts/setup_solana.py
 
-Then copy the printed mint address into .env as LAPORPOINTS_MINT_ADDRESS.
+Then copy the printed mint address into .env as RSN_MINT_ADDRESS.
 """
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ import asyncio
 from solana.rpc.async_api import AsyncClient
 
 from agent.config import get_settings
-from agent.tools.solana_token import create_laporpoints_mint, load_mint_authority
+from agent.tools.solana_token import create_rsn_mint, load_mint_authority
 
 
 async def main() -> None:
@@ -31,12 +31,12 @@ async def main() -> None:
             print("  atau: solana airdrop 1 <address> --url devnet")
             return
 
-    print("\nMembuat LaporPoints (LPT) SPL token mint...")
-    mint_address = await create_laporpoints_mint()
+    print("\nMembuat Rasain Points (RSN) SPL token mint...")
+    mint_address = await create_rsn_mint()
     print("\n=== MINT CREATED ===")
-    print(f"LAPORPOINTS_MINT_ADDRESS={mint_address}")
+    print(f"RSN_MINT_ADDRESS={mint_address}")
     print(f"Solscan: https://solscan.io/token/{mint_address}?cluster=devnet")
-    print("\nTambahkan baris LAPORPOINTS_MINT_ADDRESS di atas ke file .env")
+    print("\nTambahkan baris RSN_MINT_ADDRESS di atas ke file .env")
 
 
 if __name__ == "__main__":

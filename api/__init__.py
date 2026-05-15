@@ -1,1 +1,1 @@
-"""LaporKita FastAPI backend."""
+"""Rasain FastAPI backend."""

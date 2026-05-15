@@ -1,8 +1,8 @@
-# LaporKita Architecture
+# Rasain Architecture
 
 ## System Overview
 
-LaporKita adalah multi-agent AI system yang menggabungkan **autonomous civic reporting** dengan **Web3 reward layer** untuk warga Indonesia.
+Rasain adalah multi-agent AI system yang menggabungkan **autonomous civic reporting** dengan **Web3 reward layer** untuk warga Indonesia.
 
 ## Multi-Agent Design (7 Agents)
 
@@ -53,10 +53,10 @@ LaporKita adalah multi-agent AI system yang menggabungkan **autonomous civic rep
                           ↓ verified impact
          ┌─────────────────────────────────────────┐
          │  7. REWARD AGENT                        │
-         │  ├── Earn: +10 LaporPoints (off-chain) │
+         │  ├── Earn: +10 Rasain Points (off-chain) │
          │  ├── Threshold 10 → mint SPL token     │
-         │  ├── Citizen redeem: burn LPT          │
-         │  └── Doku Disbursement Rp 1k per LPT   │
+         │  ├── Citizen redeem: burn RSN          │
+         │  └── Doku Disbursement Rp 1k per RSN   │
          └─────────────────────────────────────────┘
 ```
 
@@ -74,7 +74,7 @@ Sistem berjalan otonom via 3 trigger mechanism:
 - **Reward Agent**: batch mint check every 1 hour
 
 ### 3. Threshold-driven (Reactive)
-- LaporPoints accumulated → cross threshold → auto-mint SPL token
+- Rasain Points accumulated → cross threshold → auto-mint SPL token
 - N reports per kota → trigger aggregate insight generation
 
 ## Decision Branches (Reasoning)
@@ -93,7 +93,7 @@ Setiap agent membuat decision dinamis berdasarkan reasoning, bukan rule-based:
 
 **Reward Agent decision matrix:**
 - IF user wallet not yet created → auto-generate Solana keypair
-- IF LaporPoints < threshold → save off-chain only
+- IF Rasain Points < threshold → save off-chain only
 - IF threshold crossed → mint on-chain SPL token
 - IF user redeem → burn + Doku Disbursement
 - IF Doku Disbursement fails → rollback burn (refund)
@@ -128,7 +128,7 @@ Setiap agent membuat decision dinamis berdasarkan reasoning, bukan rule-based:
 - Recall: similar past cases, instansi response patterns
 
 **Solana** (Web3 layer):
-- SPL Token "LaporPoints" (LPT) on devnet
+- SPL Token "Rasain Points" (RSN) on devnet
 - Mint authority: backend agent wallet
 - Citizen wallet: auto-generated per user (custodial V1)
 
@@ -144,8 +144,8 @@ class Citizen:
     name: str
     bank_account: str  # untuk Doku Disbursement
     solana_wallet: str  # custodial wallet address
-    laporpoints_offchain: int  # accumulated, pre-mint
-    laporpoints_onchain: int  # SPL token balance
+    rsn_offchain: int  # accumulated, pre-mint
+    rsn_onchain: int  # SPL token balance
 
 class Report:
     id: UUID
@@ -183,18 +183,18 @@ class Reward:
 
 **Act 1 (15s) - Setup:**
 - Dashboard idle, 3 citizen registered
-- Solana mint LaporPoints (LPT) sudah ada
+- Solana mint Rasain Points (RSN) sudah ada
 
 **Act 2 (60s) - Agent loop visible:**
 - Trigger 3 paralel WA inbox messages dengan photo
 - Logs streaming: Intake → Classifier (vision result visible) → Geolocator → Submitter → ticket created
 - Sim time-jump: 2 dari 3 ticket resolved
 - Verifier agent confirm impact
-- Reward Agent: 2 citizen earn 10 LaporPoints each → threshold crossed → SPL token mint live (Solscan link visible)
+- Reward Agent: 2 citizen earn 10 Rasain Points each → threshold crossed → SPL token mint live (Solscan link visible)
 
 **Act 3 (15s) - Reward Redemption:**
-- Citizen click "Redeem 10 LPT" di dashboard
-- Burn LPT (Solana tx visible)
+- Citizen click "Redeem 10 RSN" di dashboard
+- Burn RSN (Solana tx visible)
 - Doku Disbursement API call (HTTP response visible)
 - Citizen BCA balance simulated +Rp 10.000
 

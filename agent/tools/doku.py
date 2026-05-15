@@ -1,6 +1,6 @@
 """Doku Payer tool — connects to the DOKU MCP Server to generate civic retribusi bills.
 
-LaporKita's reward model is "Civic Credit": citizens spend earned LaporPoints (LPT)
+Rasain's reward model is "Civic Credit": citizens spend earned Rasain Points (RSN)
 to offset government retribusi bills. This module talks to the DOKU MCP Server
 (the same one judged in the Best Payment Track) to generate QRIS/VA payment
 instructions for the remaining balance.
@@ -74,25 +74,25 @@ def _format_idr_amount(amount_idr: int) -> str:
 
 def compute_civic_credit(
     retribusi_amount_idr: int,
-    lpt_balance: int,
-    rate_idr_per_lpt: int,
+    rsn_balance: int,
+    rate_idr_per_rsn: int,
 ) -> dict[str, int]:
-    """Compute how much LPT offsets a retribusi bill, and the remaining cash due.
+    """Compute how much RSN offsets a retribusi bill, and the remaining cash due.
 
     Args:
         retribusi_amount_idr: Total tagihan retribusi.
-        lpt_balance: LaporPoints token balance citizen punya.
-        rate_idr_per_lpt: Konversi (default Rp 1000 / LPT).
+        rsn_balance: Rasain Points token balance citizen punya.
+        rate_idr_per_rsn: Konversi (default Rp 1000 / RSN).
 
     Returns:
-        Dict: lpt_used, idr_offset, cash_due_idr.
+        Dict: rsn_used, idr_offset, cash_due_idr.
     """
-    max_offset_idr = lpt_balance * rate_idr_per_lpt
+    max_offset_idr = rsn_balance * rate_idr_per_rsn
     idr_offset = min(max_offset_idr, retribusi_amount_idr)
-    lpt_used = (idr_offset + rate_idr_per_lpt - 1) // rate_idr_per_lpt  # ceil-div
+    rsn_used = (idr_offset + rate_idr_per_rsn - 1) // rate_idr_per_rsn  # ceil-div
     cash_due = max(0, retribusi_amount_idr - idr_offset)
     return {
-        "lpt_used": lpt_used,
+        "rsn_used": rsn_used,
         "idr_offset": idr_offset,
         "cash_due_idr": cash_due,
     }
@@ -111,10 +111,10 @@ async def create_retribusi_qris(
     """
     if amount_idr <= 0:
         return {
-            "status": "fully_covered_by_lpt",
+            "status": "fully_covered_by_rsn",
             "partnerReferenceNo": invoice_number,
             "amount_idr": 0,
-            "note": "Tagihan sepenuhnya tertutup LaporPoints — tidak perlu QRIS.",
+            "note": "Tagihan sepenuhnya tertutup Rasain Points — tidak perlu QRIS.",
         }
     return await _call_doku(
         "create_qris_payment",

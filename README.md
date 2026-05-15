@@ -1,8 +1,8 @@
-# LaporKita
+# Rasain
 
 > **AI Civic Reporting Agent for Indonesia with Web3 Reward Layer**
 
-LaporKita adalah AI agent yang membantu 280 juta warga Indonesia melapor masalah infrastruktur publik (jalan rusak, lampu mati, sampah, banjir, dll) ke Lapor.go.id secara otomatis — dengan reward yang bisa dicairkan ke rekening bank, dibangun di atas transparansi blockchain.
+Rasain adalah AI agent yang membantu 280 juta warga Indonesia melapor masalah infrastruktur publik (jalan rusak, lampu mati, sampah, banjir, dll) ke Lapor.go.id secara otomatis — dengan reward yang bisa dicairkan ke rekening bank, dibangun di atas transparansi blockchain.
 
 **Submission untuk**: [OpenClaw Agenthon Indonesia 2026](https://luma.com/openclaw-agenthon-id) - RISTEK × Build Club
 
@@ -13,7 +13,7 @@ LaporKita adalah AI agent yang membantu 280 juta warga Indonesia melapor masalah
 ## Inti Sistem (3-Liner)
 
 1. Warga foto masalah via WhatsApp → AI agent klasifikasi pakai vision multi-modal → submit otomatis ke Lapor.go.id dengan tag instansi tepat
-2. Setelah masalah resolved oleh pemerintah daerah → citizen dapat **LaporPoints**, di-mint otomatis sebagai SPL token di Solana sebagai proof of impact
+2. Setelah masalah resolved oleh pemerintah daerah → citizen dapat **Rasain Points**, di-mint otomatis sebagai SPL token di Solana sebagai proof of impact
 3. Citizen redeem token → **Doku Disbursement** transfer langsung ke rekening BCA/Mandiri/dll
 
 ## Mengapa Penting
@@ -23,7 +23,7 @@ LaporKita adalah AI agent yang membantu 280 juta warga Indonesia melapor masalah
 - **Tidak ada insentif untuk warga lapor** → engagement rendah
 - **Pemda tidak punya data terstruktur** untuk prioritas perbaikan
 
-LaporKita memecahkan ini dengan: **automasi laporan + insentif ekonomi nyata + akuntabilitas on-chain**.
+Rasain memecahkan ini dengan: **automasi laporan + insentif ekonomi nyata + akuntabilitas on-chain**.
 
 ## Multi-Agent Architecture (Detail di [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md))
 
@@ -54,8 +54,8 @@ Citizen → Intake Agent → Classifier Agent → Geolocator Agent
 
 ```bash
 # 1. Clone
-git clone https://github.com/PugarHuda/OpenClaw2026_Lynx_LaporKita.git
-cd OpenClaw2026_Lynx_LaporKita
+git clone https://github.com/PugarHuda/OpenClaw2026_hayoloh_Rasain.git
+cd OpenClaw2026_hayoloh_Rasain
 
 # 2. Setup Python env
 python -m venv .venv
@@ -98,7 +98,7 @@ cd web && npm run dev
 
 ## Authors
 
-- **Lynx (Pugar Huda Mantoro)** — Solo builder with Claude Code as pair programmer
+- **hayoloh (Pugar Huda Mantoro)** — Solo builder with Claude Code as pair programmer
 
 ## License
 

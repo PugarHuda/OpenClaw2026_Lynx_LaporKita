@@ -1,4 +1,4 @@
-"""Centralized configuration for LaporKita, loaded from .env with type validation.
+"""Centralized configuration for Rasain, loaded from .env with type validation.
 
 Uses pydantic-settings so a malformed env var fails at startup, not mid-demo.
 """
@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     solana_rpc_url: str = "https://api.devnet.solana.com"
     helius_api_key: str = ""
     solana_mint_authority_keypair_path: str = ""
-    laporpoints_mint_address: str = ""
+    rsn_mint_address: str = ""
 
     # --- Notif ---
     fonnte_token: str = ""
@@ -47,12 +47,12 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     app_env: str = "development"
     log_level: str = "INFO"
-    database_url: str = "sqlite+aiosqlite:///./laporkita.db"
+    database_url: str = "sqlite+aiosqlite:///./rasain.db"
 
     # --- Business Rules ---
-    earn_laporpoints_per_verified_report: int = 10
-    mint_threshold_laporpoints: int = 10
-    redemption_rate_idr_per_lpt: int = 1000
+    earn_rsn_per_verified_report: int = 10
+    mint_threshold_rsn: int = 10
+    redemption_rate_idr_per_rsn: int = 1000
 
 
 @lru_cache

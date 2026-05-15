@@ -1,9 +1,9 @@
 [project]
-name = "laporkita"
+name = "rasain"
 version = "0.1.0"
 description = "AI Civic Reporting Agent for Indonesia with Web3 Reward Layer (OpenClaw Agenthon 2026)"
 authors = [
-    {name = "Pugar Huda Mantoro (Lynx)", email = "pugarhudam@gmail.com"}
+    {name = "Pugar Huda Mantoro (hayoloh)", email = "pugarhudam@gmail.com"}
 ]
 requires-python = ">=3.11"
 license = {text = "MIT"}
@@ -44,8 +44,7 @@ dependencies = [
     "sqlalchemy>=2.0",
     "aiosqlite>=0.20",
 
-    # Notif
-    "fonnte-python>=0.1.0; python_version >= '3.11'",
+    # Notif — Fonnte WhatsApp API dipanggil via httpx (plain REST, no SDK)
 ]
 
 [project.optional-dependencies]
