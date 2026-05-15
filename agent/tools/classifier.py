@@ -132,12 +132,48 @@ foto dalam ruangan pribadi) → set is_valid_report=false.
 Selalu panggil tool submit_classification dengan hasil analisismu."""
 
 
+def _mock_classification(description: str | None, kota: str | None) -> dict[str, Any]:
+    """Deterministic fallback classification when no Anthropic key is available.
+
+    Keyword-matches the description so DEMO_MODE / validator runs still exercise
+    the full pipeline. Real runs (with a key) use Claude vision instead.
+    """
+    text = (description or "").lower()
+    rules = [
+        (("sampah", "tps", "kotor"), "sampah_kebersihan", "sampah_menumpuk", "DLH"),
+        (("lampu", "pju", "gelap"), "lampu_jalan", "lampu_mati", "Dinas Perhubungan"),
+        (("banjir", "drainase", "got"), "drainase_banjir", "drainase_mampet", "Dinas PUPR"),
+        (("pohon", "tumbang"), "pohon_taman", "pohon_tumbang", "DLHK"),
+        (("listrik", "tiang", "kabel"), "listrik_pln", "tiang_miring", "PLN"),
+    ]
+    category, subcategory, instansi = "infrastruktur_jalan", "jalan_berlubang", "Dinas PUPR"
+    for keywords, cat, sub, ins in rules:
+        if any(k in text for k in keywords):
+            category, subcategory, instansi = cat, sub, ins
+            break
+    return {
+        "category": category,
+        "subcategory": subcategory,
+        "severity": "high" if "parah" in text or "bahaya" in text else "medium",
+        "urgency": 4 if "parah" in text or "bahaya" in text else 3,
+        "is_valid_report": True,
+        "confidence": 0.82,
+        "reasoning": f"[DEMO_MODE] Klasifikasi berbasis kata kunci dari deskripsi "
+        f"'{description}'. Terdeteksi kategori {category}. Jalankan dengan "
+        f"ANTHROPIC_API_KEY untuk analisis Claude vision sungguhan.",
+        "suggested_instansi_type": instansi,
+    }
+
+
 def classify_infrastructure_issue(
     image_path: str,
     description: str | None = None,
     kota: str | None = None,
 ) -> dict[str, Any]:
     """Classify an infrastructure problem photo.
+
+    Uses Claude vision when ANTHROPIC_API_KEY is set; otherwise falls back to a
+    deterministic keyword classifier so the pipeline runs in DEMO_MODE.
 
     Args:
         image_path: Path ke file foto masalah.
@@ -148,8 +184,11 @@ def classify_infrastructure_issue(
         Dict hasil klasifikasi (lihat CLASSIFICATION_TOOL schema).
     """
     settings = get_settings()
+    if not settings.anthropic_api_key:
+        return _mock_classification(description, kota)
+
     taxonomy = _load_taxonomy()
-    client = Anthropic(api_key=settings.anthropic_api_key) if settings.anthropic_api_key else Anthropic()
+    client = Anthropic(api_key=settings.anthropic_api_key)
 
     media_type, image_data = _image_to_base64(image_path)
 
