@@ -120,6 +120,18 @@ async def portal_resolve_all() -> dict:
     return {"resolved_tickets": count, "tracker": actions}
 
 
+@app.post("/demo/reset")
+async def demo_reset() -> dict:
+    """Wipe all demo state — for clean demo runs and video re-takes."""
+    import os
+
+    get_store().reset()
+    for f in ("lapor_portal_mock.json",):
+        if os.path.exists(f):
+            os.remove(f)
+    return {"status": "reset"}
+
+
 @app.get("/reports")
 async def list_reports() -> list[dict]:
     """All reports, newest first — feeds the admin dashboard."""
