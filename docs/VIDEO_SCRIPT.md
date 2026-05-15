@@ -1,93 +1,84 @@
 # Demo Video Script — Rasain (max 2 menit)
 
 **Naming**: `OpenClaw2026_hayoloh_Rasain` · YouTube **Unlisted**
-**Target durasi**: 100-110 detik
-**Tools**: OBS Studio (rekam layar) + mic. Resolusi 1920x1080.
+**Target**: 100-115 detik · rekam 1920x1080 (OBS)
 
 ## Persiapan sebelum rekam
 
-```bash
-# 1. Reset state bersih
-cd OpenClaw2026_hayoloh_Rasain
-rm -f rasain_store.json lapor_portal_mock.json
-
-# 2. Start backend (Terminal 1)
-.venv\Scripts\activate
-uvicorn api.main:app --port 8000
-
-# 3. Start frontend (Terminal 2)
-cd web && npm run dev
-
-# 4. Buka http://localhost:3000 — pastikan dashboard kosong & bersih
-# 5. Disable notifikasi (Discord, WhatsApp). Tutup tab lain.
 ```
+Backend  : sudah jalan di localhost:8000  (atau restart: uvicorn api.main:app --port 8000)
+Frontend : sudah jalan di localhost:3000  (atau: cd web && npm run dev)
+Reset    : curl -X POST http://localhost:8000/demo/reset
+```
+- Disable notifikasi (Discord/WA). Browser tab rapi. Audio test dulu.
+- Buka 2 tab: (1) http://localhost:3000  (2) Telegram @rasainAgent_bot (opsional shot)
 
 ---
 
-## ACT 1 — Problem & Solusi (0:00 - 0:18)
+## ACT 1 — Problem & Produk (0:00 - 0:18)
 
-**Visual**: Title card "Rasain" 3 detik → dashboard kosong di localhost:3000.
+**Visual**: Landing page `localhost:3000` — scroll pelan: hero → "Rp 327 T" → 7 agent.
 
 **Voice-over**:
 > "Indonesia: 280 juta warga, ribuan masalah infrastruktur tiap hari — jalan
-> rusak, lampu mati, sampah. Lapor.go.id ada, tapi response-nya lambat dan
-> warga nggak punya insentif. Rasain mengubah itu — AI multi-agent yang
-> melaporkan, melacak, dan memberi reward, otonom."
+> rusak, lampu mati, sampah. Lapor.go.id ada tapi lambat, dan warga nggak punya
+> insentif. Rasain mengubah itu — sistem multi-agent AI yang otonom."
 
-## ACT 2 — Agent Bekerja Otonom (0:18 - 1:20) ★ INTI
+## ACT 2 — Agent Bekerja Otonom (0:18 - 1:05) ★ INTI
 
-**Visual + aksi**:
-1. Klik **"+ Kirim Laporan (Demo)"** — ulangi 3x.
-   Setiap klik: panel **Agent Reasoning Trace** terisi entri baru —
-   tunjukkan warna per agent: `intake → classifier → geolocator → submitter`.
-2. **Zoom / sorot** panel reasoning trace saat entri muncul.
-3. Panel **Laporan Warga** terisi 3 kartu dengan status `submitted`.
+**Visual**: Klik **"Buka Dashboard Agent"** → di `/dashboard`:
+1. Klik **"1 · Kirim Laporan (Demo)"** 3×. Panel **Agent Reasoning Trace**
+   terisi — sorot/zoom: `intake → classifier → geolocator → submitter → memory`.
+2. Tunjuk satu entri classifier — reasoning Claude vision yang kontekstual.
 
-**Voice-over** (saat trace mengalir):
+**Voice-over**:
 > "Warga kirim foto. Classifier Agent menganalisis pakai Claude vision —
-> kategori, tingkat keparahan, urgensi. Geolocator Agent merutekan ke instansi
-> yang tepat. Submitter Agent mengirim ke Lapor.go.id. Lihat — setiap agent
-> menulis jejak pikirnya. Ini bukan skrip, ini reasoning."
+> kategori, tingkat bahaya, urgensi. Geolocator merutekan ke instansi yang
+> tepat. Submitter mengirim email resmi ke instansi. Memory Agent menyimpan
+> riwayat warga di Mem9. Setiap agent menulis jejak pikirnya — ini reasoning,
+> bukan skrip."
 
-4. Klik **"✓ Simulasi Respon Instansi"**.
-   Trace lanjut: `verifier → reward`. Status laporan jadi `verified`.
-   Stat **RSN Diterbitkan** naik jadi 30.
+3. Klik **"2 · Simulasi Respon Instansi"**. Trace lanjut: `verifier → reward`.
+   Stat **RSN Diterbitkan** naik.
 
 **Voice-over**:
-> "Saat instansi menyelesaikan masalah, Tracker Agent — yang jalan otonom
+> "Saat instansi merespon, Tracker Agent — yang jalan otonom tiap 20 detik
 > tanpa trigger manusia — memverifikasi, lalu Reward Agent me-mint Rasain
-> Points sebagai token Solana. Reward on-chain, sungguhan."
+> Points sebagai token Solana. Reward on-chain, transaksi sungguhan."
 
-## ACT 3 — Civic Credit & Impact (1:20 - 1:50)
+## ACT 3 — Civic Credit & Sponsor (1:05 - 1:35)
 
-**Visual + aksi**:
-1. Scroll ke panel **Warga & Rasain Points** — tunjukkan 3 warga, masing-masing 10 RSN.
-2. Klik **"Redeem Civic Credit"** pada satu warga.
-3. Toast muncul: "Civic Credit: 10 RSN dipakai, sisa Rp 15.000".
+**Visual**: Scroll ke panel **Warga & RSN** → klik **"Redeem Civic Credit"**.
+Toast muncul: "10 RSN dipakai, sisa Rp 15.000".
 
 **Voice-over**:
-> "Dan inilah inti-nya: warga menukar RSN sebagai Civic Credit. Token di-burn
-> di Solana, sisa tagihan retribusi dibayar lewat DOKU QRIS. Berkontribusi
-> melaporkan masalah kota — secara harfiah membantu warga membayar kewajiban
-> sipilnya. Lingkaran yang tertutup."
+> "Inti-nya: warga tukar Rasain Points sebagai Civic Credit. Token di-burn di
+> Solana, sisa tagihan retribusi dibayar lewat DOKU QRIS. Berkontribusi melapor
+> — harfiah membantu warga bayar kewajiban sipilnya."
 
-## ACT 4 — Penutup (1:50 - 2:00)
+## ACT 4 — Real Channel & Penutup (1:35 - 2:00)
 
-**Visual**: Dashboard penuh (stats terisi) → logo Rasain.
+**Visual**: Quick shot Telegram `@rasainAgent_bot` — chat: foto terkirim, bot
+balas klasifikasi. (Opsional: glimpse email di inbox.)
 
 **Voice-over**:
-> "Rasain. Tujuh agent otonom, DOKU MCP, Solana, Mem9. Laporkan masalah —
-> rasain perubahannya. Tim hayoloh, OpenClaw Agenthon 2026."
+> "Warga bisa lapor langsung dari Telegram pakai bahasa sendiri — agent ubah
+> jadi email resmi + foto, dan kirim notifikasi balik saat selesai. Rasain:
+> 8 agent otonom, DOKU, Solana, Mem9, Claude. Laporkan masalah, rasain
+> perubahannya. Tim hayoloh — OpenClaw Agenthon 2026."
 
 ---
 
-## Catatan rekaman
+## WAJIB terlihat di video (bukti untuk juri)
+- [ ] Reasoning trace streaming (autonomy + reasoning)
+- [ ] Multiple agent berbeda warna (multi-agent)
+- [ ] Status laporan berubah submitted → verified (workflow)
+- [ ] RSN counter naik / mint (Web3 real)
+- [ ] Redeem → QRIS Doku (Best Payment Track)
+- [ ] Telegram bot (real intake channel) — minimal sekilas
 
-- **WAJIB terlihat**: reasoning trace streaming, multiple agent, status berubah,
-  RSN counter naik, redeem toast. Itu bukti otonomi + payment + Web3.
-- Kalau ada `ANTHROPIC_API_KEY` di `.env`, classifier pakai Claude vision asli —
-  reasoning terdengar lebih cerdas. Sangat disarankan untuk video.
+## Tips
+- Re-take: `curl -X POST http://localhost:8000/demo/reset` lalu refresh.
 - Jangan rekam terminal lama-lama. Fokus dashboard.
-- Take ulang kalau ada step gagal — `rm rasain_store.json lapor_portal_mock.json`
-  untuk reset.
 - Upload YouTube **Unlisted**, judul `OpenClaw2026_hayoloh_Rasain`.
+- Setelah upload → submit Devpost (teks siap di `docs/DEVPOST_SUBMISSION.md`).
